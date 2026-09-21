@@ -2,15 +2,66 @@
 
 import { useState } from 'react';
 
+type ActionType =
+  | 'camera_move'
+  | 'product_move'
+  | 'product_action'
+  | 'still';
+
+type ActionVisual =
+  | 'unwrap'
+  | 'open'
+  | 'close'
+  | 'pour'
+  | 'squeeze'
+  | 'press'
+  | 'spray'
+  | 'twist'
+  | 'rotate'
+  | 'flip'
+  | 'shake'
+  | 'pull'
+  | 'push'
+  | 'slide'
+  | 'lift'
+  | 'remove'
+  | 'place'
+  | 'pick_up'
+  | 'tap'
+  | 'wipe'
+  | 'apply'
+  | 'generic';
+
 type Shot = {
   title: string;
   duration: string;
-  recordFrom: 'front' | 'top' | 'side' | 'above_side' | 'below';
+
+  recordFrom:
+    | 'front'
+    | 'top'
+    | 'side'
+    | 'above_side'
+    | 'below';
+
   phoneSetup: 'hold' | 'fixed';
-  productSetup: 'hold' | 'table' | 'surface';
+
+  productSetup:
+    | 'hold'
+    | 'table'
+    | 'surface';
+
   setupInstruction: string;
   aimInstruction: string;
-  movingObject: 'phone' | 'product' | 'none';
+
+  actionType: ActionType;
+  actionName: string;
+  actionVisual: ActionVisual;
+
+  movingObject:
+    | 'phone'
+    | 'product'
+    | 'none';
+
   movement:
     | 'none'
     | 'closer'
@@ -20,7 +71,12 @@ type Shot = {
     | 'up'
     | 'down'
     | 'around';
-  movementSpeed: 'slow' | 'normal';
+
+  movementSpeed:
+    | 'slow'
+    | 'normal';
+
+  actionInstruction: string;
   recordInstruction: string;
   say: string;
 };
@@ -45,18 +101,22 @@ const directionInfo = {
     title: 'RECORD FROM THE FRONT',
     short: 'FRONT'
   },
+
   top: {
     title: 'RECORD FROM THE TOP',
     short: 'TOP'
   },
+
   side: {
     title: 'RECORD FROM THE SIDE',
     short: 'SIDE'
   },
+
   above_side: {
     title: 'RECORD FROM ABOVE + SIDE',
     short: 'ABOVE + SIDE'
   },
+
   below: {
     title: 'RECORD FROM BELOW',
     short: 'BELOW'
@@ -64,11 +124,17 @@ const directionInfo = {
 };
 
 function DirectionDiagram({ shot }: { shot: Shot }) {
-  const direction = directionInfo[shot.recordFrom] || directionInfo.front;
+  const direction =
+    directionInfo[shot.recordFrom] ||
+    directionInfo.front;
 
   return (
-    <div className={`new-director-diagram direction-${shot.recordFrom}`}>
-      <div className="diagram-question">WHERE DO I RECORD FROM?</div>
+    <div
+      className={`new-director-diagram direction-${shot.recordFrom}`}
+    >
+      <div className="diagram-question">
+        WHERE DO I RECORD FROM?
+      </div>
 
       <h3>{direction.title}</h3>
 
@@ -98,7 +164,9 @@ function DirectionDiagram({ shot }: { shot: Shot }) {
 
 function SetupGuide({ shot }: { shot: Shot }) {
   const phoneText =
-    shot.phoneSetup === 'hold' ? 'HOLD YOUR PHONE' : 'KEEP PHONE FIXED';
+    shot.phoneSetup === 'hold'
+      ? 'HOLD YOUR PHONE'
+      : 'KEEP PHONE FIXED';
 
   const productText =
     shot.productSetup === 'hold'
@@ -113,19 +181,23 @@ function SetupGuide({ shot }: { shot: Shot }) {
 
       <div className="step-content">
         <small>SET UP</small>
+
         <h3>{phoneText}</h3>
 
         <div className="setup-choices">
           <div>
             <span>PHONE</span>
+
             <strong>
-              {shot.phoneSetup === 'hold' ? 'HOLD IT' : 'KEEP IT FIXED'}
+              {shot.phoneSetup === 'hold'
+                ? 'HOLD IT'
+                : 'KEEP IT FIXED'}
             </strong>
           </div>
 
           <div>
             <span>PRODUCT</span>
-            <strong>{productText.replace('THE PRODUCT', 'IT')}</strong>
+            <strong>{productText}</strong>
           </div>
         </div>
 
@@ -135,64 +207,575 @@ function SetupGuide({ shot }: { shot: Shot }) {
   );
 }
 
-function MovementGuide({ shot }: { shot: Shot }) {
-  const movingPhone = shot.movingObject === 'phone';
-  const movingProduct = shot.movingObject === 'product';
+function CameraMovementVisual({
+  shot
+}: {
+  shot: Shot;
+}) {
+  const movementClass =
+    `move-${shot.movement}`;
 
-  const movementClass = `move-${shot.movement}`;
+  return (
+    <div
+      className={`movement-stage movement-${shot.movement}`}
+    >
+      <div
+        className={`mini-phone moving-object ${movementClass}`}
+      >
+        <div className="mini-camera-dot" />
+        <span>PHONE</span>
+      </div>
 
-  const movementTitle =
-    shot.movement === 'none'
-      ? 'KEEP STILL'
-      : shot.movingObject === 'phone'
-      ? 'MOVE YOUR PHONE'
-      : 'MOVE THE PRODUCT';
+      <div className="movement-dots">
+        <i />
+        <i />
+        <i />
+        <b>›</b>
+      </div>
+
+      <div className="mini-product">
+        PRODUCT
+      </div>
+    </div>
+  );
+}
+
+function ProductMovementVisual({
+  shot
+}: {
+  shot: Shot;
+}) {
+  const movementClass =
+    `move-${shot.movement}`;
+
+  return (
+    <div
+      className={`movement-stage movement-${shot.movement}`}
+    >
+      <div className="mini-phone">
+        <div className="mini-camera-dot" />
+        <span>PHONE</span>
+      </div>
+
+      <div className="movement-dots">
+        <i />
+        <i />
+        <i />
+        <b>›</b>
+      </div>
+
+      <div
+        className={`mini-product moving-object ${movementClass}`}
+      >
+        PRODUCT
+      </div>
+    </div>
+  );
+}
+
+function ProductActionVisual({
+  shot
+}: {
+  shot: Shot;
+}) {
+  const action = shot.actionVisual;
+
+  if (action === 'unwrap') {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="unwrap-demo">
+          <div className="soap-core">
+            SOAP
+          </div>
+
+          <div className="soap-wrapper">
+            WRAPPER
+          </div>
+
+          <div className="action-arrow">
+            →
+          </div>
+        </div>
+
+        <div className="action-caption">
+          SLIDE WRAPPER OFF
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    action === 'open' ||
+    action === 'remove'
+  ) {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="open-demo">
+          <div className="action-bottle">
+            <div className="action-cap" />
+            <span>PRODUCT</span>
+          </div>
+
+          <div className="up-action-arrow">
+            ↑
+          </div>
+        </div>
+
+        <div className="action-caption">
+          {action === 'open'
+            ? 'OPEN IT'
+            : 'REMOVE IT'}
+        </div>
+      </div>
+    );
+  }
+
+  if (action === 'twist') {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="twist-demo">
+          <div className="twist-arrow">
+            ↻
+          </div>
+
+          <div className="action-bottle">
+            <div className="action-cap" />
+            <span>PRODUCT</span>
+          </div>
+        </div>
+
+        <div className="action-caption">
+          TWIST IT
+        </div>
+      </div>
+    );
+  }
+
+  if (action === 'rotate') {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="rotate-demo">
+          <div className="rotate-arrow">
+            ↻
+          </div>
+
+          <div className="rotate-product">
+            PRODUCT
+          </div>
+        </div>
+
+        <div className="action-caption">
+          TURN THE PRODUCT
+        </div>
+      </div>
+    );
+  }
+
+  if (action === 'pour') {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="pour-demo">
+          <div className="pour-product">
+            PRODUCT
+          </div>
+
+          <div className="pour-stream" />
+
+          <div className="pour-cup">
+            CUP
+          </div>
+        </div>
+
+        <div className="action-caption">
+          POUR IT
+        </div>
+      </div>
+    );
+  }
+
+  if (action === 'squeeze') {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="squeeze-demo">
+          <span className="squeeze-left">
+            →
+          </span>
+
+          <div className="squeeze-product">
+            PRODUCT
+          </div>
+
+          <span className="squeeze-right">
+            ←
+          </span>
+        </div>
+
+        <div className="action-caption">
+          SQUEEZE IT
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    action === 'press' ||
+    action === 'tap'
+  ) {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="press-demo">
+          <div className="press-arrow">
+            ↓
+          </div>
+
+          <div className="press-product">
+            PRODUCT
+          </div>
+        </div>
+
+        <div className="action-caption">
+          {action === 'tap'
+            ? 'TAP IT'
+            : 'PRESS IT'}
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    action === 'lift' ||
+    action === 'pick_up'
+  ) {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="lift-demo">
+          <div className="lift-product">
+            PRODUCT
+          </div>
+
+          <div className="lift-arrow">
+            ↑
+          </div>
+
+          <div className="surface-line" />
+        </div>
+
+        <div className="action-caption">
+          LIFT IT UP
+        </div>
+      </div>
+    );
+  }
+
+  if (action === 'place') {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="place-demo">
+          <div className="place-product">
+            PRODUCT
+          </div>
+
+          <div className="place-arrow">
+            ↓
+          </div>
+
+          <div className="surface-line" />
+        </div>
+
+        <div className="action-caption">
+          PUT IT DOWN
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    action === 'slide' ||
+    action === 'pull' ||
+    action === 'push'
+  ) {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="slide-demo">
+          <div className="slide-product">
+            PRODUCT
+          </div>
+
+          <div className="slide-arrow">
+            →
+          </div>
+        </div>
+
+        <div className="action-caption">
+          {action === 'pull'
+            ? 'PULL IT'
+            : action === 'push'
+            ? 'PUSH IT'
+            : 'SLIDE IT'}
+        </div>
+      </div>
+    );
+  }
+
+  if (action === 'shake') {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="shake-demo">
+          <span>←</span>
+
+          <div className="shake-product">
+            PRODUCT
+          </div>
+
+          <span>→</span>
+        </div>
+
+        <div className="action-caption">
+          SHAKE IT
+        </div>
+      </div>
+    );
+  }
+
+  if (action === 'flip') {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="flip-demo">
+          <div className="flip-arrow">
+            ↻
+          </div>
+
+          <div className="flip-product">
+            PRODUCT
+          </div>
+        </div>
+
+        <div className="action-caption">
+          FLIP IT
+        </div>
+      </div>
+    );
+  }
+
+  if (action === 'spray') {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE PRODUCT
+        </div>
+
+        <div className="spray-demo">
+          <div className="spray-product">
+            PRODUCT
+          </div>
+
+          <div className="spray-cloud">
+            <i />
+            <i />
+            <i />
+          </div>
+        </div>
+
+        <div className="action-caption">
+          SPRAY IT
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    action === 'wipe' ||
+    action === 'apply'
+  ) {
+    return (
+      <div className="action-stage">
+        <div className="action-label">
+          WATCH THE ACTION
+        </div>
+
+        <div className="apply-demo">
+          <div className="apply-product">
+            PRODUCT
+          </div>
+
+          <div className="apply-arrow">
+            →
+          </div>
+
+          <div className="apply-target">
+            AREA
+          </div>
+        </div>
+
+        <div className="action-caption">
+          {action === 'wipe'
+            ? 'WIPE ACROSS'
+            : 'APPLY IT'}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="action-stage">
+      <div className="action-label">
+        DO THIS
+      </div>
+
+      <div className="generic-action">
+        <div className="generic-product">
+          PRODUCT
+        </div>
+
+        <div className="generic-arrow">
+          →
+        </div>
+      </div>
+
+      <div className="action-caption">
+        {shot.actionName}
+      </div>
+    </div>
+  );
+}
+
+function StillVisual() {
+  return (
+    <div className="action-stage">
+      <div className="action-label">
+        WHILE RECORDING
+      </div>
+
+      <div className="still-demo">
+        <div className="still-phone">
+          PHONE
+        </div>
+
+        <div className="still-lines">
+          · · ·
+        </div>
+
+        <div className="still-product">
+          PRODUCT
+        </div>
+      </div>
+
+      <div className="action-caption still-caption">
+        KEEP EVERYTHING STILL
+      </div>
+    </div>
+  );
+}
+
+function MovementGuide({
+  shot
+}: {
+  shot: Shot;
+}) {
+  let title = shot.actionName;
+
+  if (!title) {
+    if (shot.actionType === 'camera_move') {
+      title = 'MOVE YOUR PHONE';
+    } else if (
+      shot.actionType === 'product_move'
+    ) {
+      title = 'MOVE THE PRODUCT';
+    } else if (shot.actionType === 'still') {
+      title = 'KEEP STILL';
+    } else {
+      title = 'DO THIS';
+    }
+  }
 
   return (
     <div className="movement-card">
       <div className="step-number">3</div>
 
       <div className="step-content">
-        <small>HOW DO I MOVE?</small>
-        <h3>{movementTitle}</h3>
+        <small>WHAT DO I DO?</small>
 
-        <div className={`movement-stage movement-${shot.movement}`}>
-          <div
-            className={`mini-phone ${
-              movingPhone ? `moving-object ${movementClass}` : ''
-            }`}
-          >
-            <div className="mini-camera-dot" />
-            <span>PHONE</span>
-          </div>
+        <h3>{title}</h3>
 
-          <div className="movement-dots">
-            {shot.movement === 'none' ? (
-              <span className="still-mark">STAY STILL</span>
-            ) : (
-              <>
-                <i />
-                <i />
-                <i />
-                <b>›</b>
-              </>
-            )}
-          </div>
+        {shot.actionType ===
+          'camera_move' && (
+          <CameraMovementVisual shot={shot} />
+        )}
 
-          <div
-            className={`mini-product ${
-              movingProduct ? `moving-object ${movementClass}` : ''
-            }`}
-          >
-            PRODUCT
-          </div>
+        {shot.actionType ===
+          'product_move' && (
+          <ProductMovementVisual shot={shot} />
+        )}
+
+        {shot.actionType ===
+          'product_action' && (
+          <ProductActionVisual shot={shot} />
+        )}
+
+        {shot.actionType === 'still' && (
+          <StillVisual />
+        )}
+
+        <div className="action-instruction-box">
+          <span>DO THIS</span>
+          <strong>
+            {shot.actionInstruction}
+          </strong>
         </div>
 
-        <p>{shot.recordInstruction}</p>
-
-        {shot.movement !== 'none' && (
+        {shot.actionType !== 'still' && (
           <div className="speed-label">
-            {shot.movementSpeed === 'slow' ? 'MOVE SLOWLY' : 'NORMAL SPEED'}
+            {shot.movementSpeed === 'slow'
+              ? 'DO IT SLOWLY'
+              : 'NORMAL SPEED'}
           </div>
         )}
       </div>
@@ -202,18 +785,37 @@ function MovementGuide({ shot }: { shot: Shot }) {
 
 export default function Home() {
   const [view, setView] = useState<
-    'home' | 'dashboard' | 'create' | 'ideas' | 'director' | 'done'
+    | 'home'
+    | 'dashboard'
+    | 'create'
+    | 'ideas'
+    | 'director'
+    | 'done'
   >('home');
 
   const [name, setName] = useState('');
   const [point, setPoint] = useState('');
-  const [goal, setGoal] = useState(goals[0]);
-  const [image, setImage] = useState<string>();
-  const [concepts, setConcepts] = useState<Concept[]>([]);
-  const [selectedConcept, setSelectedConcept] = useState(0);
+  const [goal, setGoal] =
+    useState(goals[0]);
+
+  const [image, setImage] =
+    useState<string>();
+
+  const [concepts, setConcepts] =
+    useState<Concept[]>([]);
+
+  const [
+    selectedConcept,
+    setSelectedConcept
+  ] = useState(0);
+
   const [shot, setShot] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState('');
 
   function pickFile(f?: File) {
     if (!f) return;
@@ -229,7 +831,9 @@ export default function Home() {
 
   async function generateIdeas() {
     if (!name.trim()) {
-      setError('Please enter your product name.');
+      setError(
+        'Please enter your product name.'
+      );
       return;
     }
 
@@ -237,27 +841,41 @@ export default function Home() {
     setError('');
 
     try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name,
-          sellingPoint: point,
-          goal,
-          image
-        })
-      });
+      const response = await fetch(
+        '/api/generate',
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json'
+          },
+
+          body: JSON.stringify({
+            name,
+            sellingPoint: point,
+            goal,
+            image
+          })
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Could not generate filming ideas.');
+        throw new Error(
+          data.error ||
+            'Could not generate filming ideas.'
+        );
       }
 
-      if (!data.concepts || !Array.isArray(data.concepts)) {
-        throw new Error('ShootAI received an invalid response.');
+      if (
+        !data.concepts ||
+        !Array.isArray(data.concepts)
+      ) {
+        throw new Error(
+          'ShootAI received an invalid response.'
+        );
       }
 
       setConcepts(data.concepts);
@@ -277,11 +895,19 @@ export default function Home() {
 
   const nav = (
     <nav>
-      <button className="logo" onClick={() => setView('home')}>
+      <button
+        className="logo"
+        onClick={() => setView('home')}
+      >
         Shoot<span>AI</span>
       </button>
 
-      <button className="navbtn" onClick={() => setView('dashboard')}>
+      <button
+        className="navbtn"
+        onClick={() =>
+          setView('dashboard')
+        }
+      >
         Dashboard
       </button>
     </nav>
@@ -294,21 +920,36 @@ export default function Home() {
 
         <section className="hero">
           <div>
-            <div className="badge">AI PRODUCT FILMING DIRECTOR</div>
+            <div className="badge">
+              AI PRODUCT FILMING DIRECTOR
+            </div>
 
-            <h1>Don’t know how to film your product?</h1>
+            <h1>
+              Don’t know how to film your
+              product?
+            </h1>
 
             <p className="lead">
-              Show ShootAI what you sell. Get a content concept and exact
-              shot-by-shot instructions you can follow with your phone.
+              Show ShootAI what you sell.
+              Get a content concept and
+              exact shot-by-shot
+              instructions you can follow
+              with your phone.
             </p>
 
-            <button className="cta" onClick={() => setView('create')}>
+            <button
+              className="cta"
+              onClick={() =>
+                setView('create')
+              }
+            >
               Create a filming plan →
             </button>
 
             <p className="tiny">
-              No video generation. No editing. Just clear direction.
+              No video generation. No
+              editing. Just clear
+              direction.
             </p>
           </div>
 
@@ -321,12 +962,19 @@ export default function Home() {
                   PRODUCT
                 </div>
 
-                <span>✓ Great framing</span>
+                <span>
+                  ✓ Great framing
+                </span>
               </div>
 
-              <small>SHOT 1 OF 6 · HOOK</small>
+              <small>
+                SHOT 1 OF 6 · HOOK
+              </small>
 
-              <b>Bring the product quickly toward the camera.</b>
+              <b>
+                Bring the product quickly
+                toward the camera.
+              </b>
             </div>
           </div>
         </section>
@@ -334,28 +982,42 @@ export default function Home() {
         <section className="how">
           <p>HOW IT WORKS</p>
 
-          <h2>From product to shot list in minutes.</h2>
+          <h2>
+            From product to shot list in
+            minutes.
+          </h2>
 
           <div className="steps">
             <article>
               <i>01</i>
-              <h3>Show your product</h3>
-              <span>Upload a photo and tell us the key selling point.</span>
+              <h3>
+                Show your product
+              </h3>
+              <span>
+                Upload a photo and tell us
+                the key selling point.
+              </span>
             </article>
 
             <article>
               <i>02</i>
               <h3>Pick a concept</h3>
               <span>
-                ShootAI gives you simple short-form content directions.
+                ShootAI gives you simple
+                short-form content
+                directions.
               </span>
             </article>
 
             <article>
               <i>03</i>
-              <h3>Follow the director</h3>
+              <h3>
+                Follow the director
+              </h3>
               <span>
-                Film one shot at a time with simple visual directions.
+                Film one shot at a time
+                with simple visual
+                directions.
               </span>
             </article>
           </div>
@@ -372,11 +1034,19 @@ export default function Home() {
         <section className="page">
           <div className="row">
             <div>
-              <div className="badge">YOUR WORKSPACE</div>
+              <div className="badge">
+                YOUR WORKSPACE
+              </div>
+
               <h2>Projects</h2>
             </div>
 
-            <button className="cta small" onClick={() => setView('create')}>
+            <button
+              className="cta small"
+              onClick={() =>
+                setView('create')
+              }
+            >
               + New project
             </button>
           </div>
@@ -384,13 +1054,23 @@ export default function Home() {
           <div className="empty">
             <div>◎</div>
 
-            <h3>Your first product video starts here.</h3>
+            <h3>
+              Your first product video
+              starts here.
+            </h3>
 
             <p>
-              Create a project and ShootAI will plan every shot for you.
+              Create a project and ShootAI
+              will plan every shot for
+              you.
             </p>
 
-            <button className="cta small" onClick={() => setView('create')}>
+            <button
+              className="cta small"
+              onClick={() =>
+                setView('create')
+              }
+            >
               Create project →
             </button>
           </div>
@@ -405,30 +1085,53 @@ export default function Home() {
         {nav}
 
         <section className="page narrow">
-          <button className="back" onClick={() => setView('dashboard')}>
+          <button
+            className="back"
+            onClick={() =>
+              setView('dashboard')
+            }
+          >
             ← Dashboard
           </button>
 
-          <div className="badge">NEW PROJECT</div>
+          <div className="badge">
+            NEW PROJECT
+          </div>
 
-          <h2>What are you filming?</h2>
+          <h2>
+            What are you filming?
+          </h2>
 
-          <p>Give ShootAI enough context to create a useful plan.</p>
+          <p>
+            Give ShootAI enough context
+            to create a useful plan.
+          </p>
 
           <label className="upload">
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => pickFile(e.target.files?.[0])}
+              onChange={(e) =>
+                pickFile(
+                  e.target.files?.[0]
+                )
+              }
             />
 
             {image ? (
-              <img src={image} alt="Product preview" />
+              <img
+                src={image}
+                alt="Product preview"
+              />
             ) : (
               <>
                 <strong>＋</strong>
-                <b>Upload product photo</b>
-                <span>Click to choose an image</span>
+                <b>
+                  Upload product photo
+                </b>
+                <span>
+                  Click to choose an image
+                </span>
               </>
             )}
           </label>
@@ -438,7 +1141,9 @@ export default function Home() {
 
             <input
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) =>
+                setName(e.target.value)
+              }
               placeholder="e.g. Papaya Soap"
             />
           </label>
@@ -448,7 +1153,9 @@ export default function Home() {
 
             <textarea
               value={point}
-              onChange={(e) => setPoint(e.target.value)}
+              onChange={(e) =>
+                setPoint(e.target.value)
+              }
               placeholder="What should customers know about it?"
             />
           </label>
@@ -461,8 +1168,14 @@ export default function Home() {
                 <button
                   type="button"
                   key={g}
-                  className={goal === g ? 'selected' : ''}
-                  onClick={() => setGoal(g)}
+                  className={
+                    goal === g
+                      ? 'selected'
+                      : ''
+                  }
+                  onClick={() =>
+                    setGoal(g)
+                  }
                 >
                   {g}
                 </button>
@@ -471,7 +1184,12 @@ export default function Home() {
           </label>
 
           {error && (
-            <p style={{ color: '#ff6b6b', marginTop: 12 }}>
+            <p
+              style={{
+                color: '#ff6b6b',
+                marginTop: 12
+              }}
+            >
               {error}
             </p>
           )}
@@ -496,46 +1214,76 @@ export default function Home() {
         {nav}
 
         <section className="page narrow">
-          <button className="back" onClick={() => setView('create')}>
+          <button
+            className="back"
+            onClick={() =>
+              setView('create')
+            }
+          >
             ← Product details
           </button>
 
-          <div className="badge">{concepts.length} CONCEPTS</div>
+          <div className="badge">
+            {concepts.length} CONCEPTS
+          </div>
 
-          <h2>Choose a direction.</h2>
+          <h2>
+            Choose a direction.
+          </h2>
 
-          <p>Pick the concept you’d actually enjoy filming.</p>
+          <p>
+            Pick the concept you’d
+            actually enjoy filming.
+          </p>
 
           <div className="cards">
-            {concepts.map((concept, i) => (
-              <article
-                className={i === 0 ? 'idea best' : 'idea'}
-                key={`${concept.title}-${i}`}
-              >
-                {i === 0 && <em>AI PICK</em>}
-
-                <small>
-                  {concept.shots?.length || 0} SHOTS · EASY TO FILM
-                </small>
-
-                <h3>“{concept.hook}”</h3>
-
-                <p>{concept.description}</p>
-
-                <div className="sequence">{concept.title}</div>
-
-                <button
-                  className="outline"
-                  onClick={() => {
-                    setSelectedConcept(i);
-                    setShot(0);
-                    setView('director');
-                  }}
+            {concepts.map(
+              (concept, i) => (
+                <article
+                  className={
+                    i === 0
+                      ? 'idea best'
+                      : 'idea'
+                  }
+                  key={`${concept.title}-${i}`}
                 >
-                  Use this concept →
-                </button>
-              </article>
-            ))}
+                  {i === 0 && (
+                    <em>AI PICK</em>
+                  )}
+
+                  <small>
+                    {concept.shots
+                      ?.length || 0}{' '}
+                    SHOTS · EASY TO FILM
+                  </small>
+
+                  <h3>
+                    “{concept.hook}”
+                  </h3>
+
+                  <p>
+                    {concept.description}
+                  </p>
+
+                  <div className="sequence">
+                    {concept.title}
+                  </div>
+
+                  <button
+                    className="outline"
+                    onClick={() => {
+                      setSelectedConcept(i);
+                      setShot(0);
+                      setView(
+                        'director'
+                      );
+                    }}
+                  >
+                    Use this concept →
+                  </button>
+                </article>
+              )
+            )}
           </div>
         </section>
       </main>
@@ -543,8 +1291,12 @@ export default function Home() {
   }
 
   if (view === 'director') {
-    const concept = concepts[selectedConcept];
-    const shots = concept?.shots || [];
+    const concept =
+      concepts[selectedConcept];
+
+    const shots =
+      concept?.shots || [];
+
     const s = shots[shot];
 
     if (!s) {
@@ -553,9 +1305,16 @@ export default function Home() {
           {nav}
 
           <section className="page narrow">
-            <h2>No shot available.</h2>
+            <h2>
+              No shot available.
+            </h2>
 
-            <button className="cta" onClick={() => setView('ideas')}>
+            <button
+              className="cta"
+              onClick={() =>
+                setView('ideas')
+              }
+            >
               Back to concepts
             </button>
           </section>
@@ -568,40 +1327,62 @@ export default function Home() {
         {nav}
 
         <section className="page narrow">
-          <button className="back" onClick={() => setView('ideas')}>
+          <button
+            className="back"
+            onClick={() =>
+              setView('ideas')
+            }
+          >
             ← Concepts
           </button>
 
           <div className="progress">
             <i
               style={{
-                width: `${((shot + 1) / shots.length) * 100}%`
+                width: `${
+                  ((shot + 1) /
+                    shots.length) *
+                  100
+                }%`
               }}
             />
           </div>
 
           <div className="shotrow">
             <span>
-              SHOT {shot + 1} OF {shots.length}
+              SHOT {shot + 1} OF{' '}
+              {shots.length}
             </span>
 
-            <span>{s.duration.toUpperCase()}</span>
+            <span>
+              {s.duration.toUpperCase()}
+            </span>
           </div>
 
           <h2>{s.title}</h2>
 
           <div className="director-intro">
-            Follow these steps. Don’t worry about camera terms.
+            Follow these steps. Don’t
+            worry about camera terms.
           </div>
 
           <div className="director-step-card direction-step">
-            <div className="step-number">1</div>
+            <div className="step-number">
+              1
+            </div>
 
             <div className="step-content">
-              <small>CAMERA DIRECTION</small>
-              <DirectionDiagram shot={s} />
+              <small>
+                CAMERA DIRECTION
+              </small>
 
-              <p className="aim-instruction">{s.aimInstruction}</p>
+              <DirectionDiagram
+                shot={s}
+              />
+
+              <p className="aim-instruction">
+                {s.aimInstruction}
+              </p>
             </div>
           </div>
 
@@ -610,36 +1391,52 @@ export default function Home() {
           <MovementGuide shot={s} />
 
           <div className="record-card">
-            <div className="step-number">4</div>
+            <div className="step-number">
+              4
+            </div>
 
             <div className="step-content">
               <small>RECORD</small>
 
-              <h3>RECORD FOR {s.duration.toUpperCase()}</h3>
+              <h3>
+                RECORD FOR{' '}
+                {s.duration.toUpperCase()}
+              </h3>
 
               <div className="record-timer">
                 <span className="big-record-dot" />
-                <strong>{s.duration}</strong>
+                <strong>
+                  {s.duration}
+                </strong>
               </div>
 
-              <p>{s.recordInstruction}</p>
+              <p>
+                {s.recordInstruction}
+              </p>
             </div>
           </div>
 
-          <div className="say">
-            <small>WHAT TO SAY</small>
-            <strong>{s.say}</strong>
-          </div>
+          {s.say && (
+            <div className="say">
+              <small>
+                WHAT TO SAY
+              </small>
+
+              <strong>{s.say}</strong>
+            </div>
+          )}
 
           <button
             className="cta full"
             onClick={() =>
-              shot < shots.length - 1
+              shot <
+              shots.length - 1
                 ? setShot(shot + 1)
                 : setView('done')
             }
           >
-            {shot < shots.length - 1
+            {shot <
+            shots.length - 1
               ? '✓ Done — Next shot'
               : '✓ Complete filming plan'}
           </button>
@@ -653,20 +1450,32 @@ export default function Home() {
       {nav}
 
       <section className="finish">
-        <div className="tick">✓</div>
+        <div className="tick">
+          ✓
+        </div>
 
-        <div className="badge">FILMING PLAN COMPLETE</div>
+        <div className="badge">
+          FILMING PLAN COMPLETE
+        </div>
 
-        <h2>You know exactly what to shoot.</h2>
+        <h2>
+          You know exactly what to
+          shoot.
+        </h2>
 
         <p>
-          Follow your six shots while filming, then edit the footage in
-          your preferred editor.
+          Follow your six shots while
+          filming, then edit the footage
+          in your preferred editor.
         </p>
 
         <div className="donegrid">
-          {(concepts[selectedConcept]?.shots || []).map((s, i) => (
-            <div key={`${s.title}-${i}`}>
+          {(concepts[selectedConcept]
+            ?.shots || []
+          ).map((s, i) => (
+            <div
+              key={`${s.title}-${i}`}
+            >
               ✓ <span>{s.title}</span>
             </div>
           ))}
