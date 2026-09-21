@@ -46,251 +46,123 @@ const goals = [
   'Problem → Solution'
 ];
 
-function movementText(movement: Shot['movement']) {
-  const labels = {
-    none: 'KEEP STILL',
-    toward_camera: 'MOVE TOWARD PHONE ↑',
-    away_camera: 'MOVE AWAY FROM PHONE ↓',
-    left_to_right: 'MOVE LEFT → RIGHT',
-    right_to_left: 'MOVE RIGHT → LEFT',
-    top_to_bottom: 'MOVE TOP → BOTTOM',
-    bottom_to_top: 'MOVE BOTTOM → TOP'
-  };
-
-  return labels[movement] || 'KEEP STILL';
-}
-
 function ShotGuide({ shot }: { shot: Shot }) {
   const isPerson = shot.visualType === 'person_product';
   const isHand = shot.visualType === 'product_hand';
   const isTop = shot.visualType === 'product_top';
 
+  const movementClass = {
+    none: 'motion-still',
+    toward_camera: 'motion-toward',
+    away_camera: 'motion-away',
+    left_to_right: 'motion-right',
+    right_to_left: 'motion-left',
+    top_to_bottom: 'motion-down',
+    bottom_to_top: 'motion-up'
+  }[shot.movement];
+
+  const movementLabel = {
+    none: 'KEEP STILL',
+    toward_camera: 'MOVE TOWARD PHONE',
+    away_camera: 'MOVE AWAY FROM PHONE',
+    left_to_right: 'MOVE LEFT TO RIGHT',
+    right_to_left: 'MOVE RIGHT TO LEFT',
+    top_to_bottom: 'MOVE DOWN',
+    bottom_to_top: 'MOVE UP'
+  }[shot.movement];
+
   return (
-    <div
-      style={{
-        background: '#111',
-        border: '1px solid #2a2a2a',
-        borderRadius: 18,
-        padding: 22,
-        margin: '24px 0'
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: 20,
-          marginBottom: 18,
-          fontSize: 12,
-          color: '#999',
-          fontWeight: 700,
-          letterSpacing: 1
-        }}
-      >
-        <span>SHOT SETUP</span>
-        <span>{shot.distance}</span>
+    <div className="director-demo">
+      <div className="demo-header">
+        <span>HOW TO FILM THIS SHOT</span>
+        <span>{shot.duration}</span>
       </div>
 
-      <div
-        style={{
-          minHeight: 300,
-          border: '1px solid #333',
-          borderRadius: 14,
-          position: 'relative',
-          overflow: 'hidden',
-          background:
-            'linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px)',
-          backgroundSize: '33.33% 33.33%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: 16,
-            left: 16,
-            fontSize: 11,
-            color: '#888',
-            letterSpacing: 1
-          }}
-        >
-          {isTop ? 'TOP-DOWN VIEW' : 'CAMERA VIEW'}
+      <div className={`demo-stage ${isTop ? 'top-view' : ''}`}>
+        <div className="demo-grid-line vertical" />
+        <div className="demo-grid-line horizontal" />
+
+        <div className={`demo-light light-${shot.lightSide}`}>
+          <div className="light-symbol">☀</div>
+          <b>LIGHT</b>
+          <small>
+            {shot.lightSide === 'left'
+              ? 'FROM LEFT'
+              : shot.lightSide === 'right'
+              ? 'FROM RIGHT'
+              : 'FROM FRONT'}
+          </small>
         </div>
 
-        <div
-          style={{
-            position: 'absolute',
-            top: 16,
-            right: 16,
-            padding: '6px 10px',
-            border: '1px solid #3a3a3a',
-            borderRadius: 20,
-            fontSize: 11,
-            color: '#bbb'
-          }}
-        >
-          9:16 VERTICAL
-        </div>
-
-        <div
-          style={{
-            position: 'absolute',
-            left: shot.lightSide === 'left' ? 18 : 'auto',
-            right: shot.lightSide === 'right' ? 18 : 'auto',
-            top: shot.lightSide === 'front' ? 55 : '50%',
-            transform:
-              shot.lightSide === 'front'
-                ? 'translateY(0)'
-                : 'translateY(-50%)',
-            color: '#ffd84d',
-            textAlign: 'center',
-            fontSize: 12,
-            fontWeight: 700
-          }}
-        >
-          <div style={{ fontSize: 28 }}>☀</div>
-          LIGHT
-          <div style={{ fontSize: 20 }}>
-            {shot.lightSide === 'right' ? '←' : '→'}
-          </div>
-        </div>
-
-        <div style={{ textAlign: 'center' }}>
+        <div className="subject-zone">
           {isPerson && (
-            <div
-              style={{
-                width: 58,
-                height: 58,
-                border: '2px solid #aaa',
-                borderRadius: '50%',
-                margin: '0 auto 8px'
-              }}
-            />
-          )}
-
-          {isHand && (
-            <div
-              style={{
-                fontSize: 12,
-                color: '#aaa',
-                marginBottom: 8
-              }}
-            >
-              HOLD PRODUCT
+            <div className="person-guide">
+              <div className="person-head" />
+              <div className="person-body" />
             </div>
           )}
 
-          <div
-            style={{
-              width: isPerson ? 95 : 125,
-              height: isPerson ? 90 : 145,
-              border: '2px solid #ffd84d',
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 10,
-              fontWeight: 800,
-              color: '#fff',
-              position: 'relative',
-              margin: 'auto'
-            }}
-          >
-            PRODUCT
+          {isHand && (
+            <div className="hand-label">
+              HOLD IN YOUR HAND
+            </div>
+          )}
 
-            <span
-              style={{
-                position: 'absolute',
-                width: 'calc(100% + 18px)',
-                height: 'calc(100% + 18px)',
-                border: '1px dashed #555',
-                borderRadius: 12
-              }}
-            />
+          <div className={`animated-product ${movementClass}`}>
+            <div className="product-shape">
+              <span>PRODUCT</span>
+            </div>
+
+            {shot.movement !== 'none' && (
+              <div className="motion-trail">
+                {shot.movement === 'toward_camera' && '↓'}
+                {shot.movement === 'away_camera' && '↑'}
+                {shot.movement === 'left_to_right' && '→'}
+                {shot.movement === 'right_to_left' && '←'}
+                {shot.movement === 'top_to_bottom' && '↓'}
+                {shot.movement === 'bottom_to_top' && '↑'}
+              </div>
+            )}
           </div>
 
-          <div
-            style={{
-              marginTop: 18,
-              color: '#ffd84d',
-              fontSize: 12,
-              fontWeight: 800,
-              letterSpacing: .5
-            }}
-          >
-            {movementText(shot.movement)}
+          <div className="movement-label">
+            <span className="record-dot" />
+            {movementLabel}
           </div>
         </div>
 
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            color: '#999',
-            fontSize: 11,
-            width: '85%',
-            textAlign: 'center'
-          }}
-        >
+        <div className="phone-zone">
+          <div className="distance-line">
+            <span />
+            <b>{shot.distance}</b>
+            <span />
+          </div>
+
+          <div className="phone-icon">
+            <div className="phone-camera" />
+
+            <div className="phone-screen">
+              <div className="focus-box" />
+            </div>
+          </div>
+
+          <b className="phone-name">YOUR PHONE</b>
+        </div>
+
+        <div className="subject-position">
           {shot.subjectPosition}
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 12,
-          marginTop: 18
-        }}
-      >
-        <div
-          style={{
-            width: 28,
-            height: 44,
-            border: '2px solid #aaa',
-            borderRadius: 6,
-            position: 'relative'
-          }}
-        >
-          <span
-            style={{
-              width: 5,
-              height: 5,
-              border: '1px solid #aaa',
-              borderRadius: '50%',
-              position: 'absolute',
-              top: 4,
-              left: '50%',
-              transform: 'translateX(-50%)'
-            }}
-          />
+      <div className="demo-bottom">
+        <div>
+          <small>PHONE POSITION</small>
+          <strong>{shot.phonePosition}</strong>
         </div>
 
         <div>
-          <div
-            style={{
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 700
-            }}
-          >
-            PHONE
-          </div>
-
-          <div
-            style={{
-              color: '#999',
-              fontSize: 12
-            }}
-          >
-            {shot.phonePosition} · {shot.distance}
-          </div>
+          <small>LIGHT</small>
+          <strong>{shot.lightDirection}</strong>
         </div>
       </div>
     </div>
@@ -350,9 +222,7 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || 'Could not generate filming ideas.'
-        );
+        throw new Error(data.error || 'Could not generate filming ideas.');
       }
 
       if (!data.concepts || !Array.isArray(data.concepts)) {
@@ -380,10 +250,7 @@ export default function Home() {
         Shoot<span>AI</span>
       </button>
 
-      <button
-        className="navbtn"
-        onClick={() => setView('dashboard')}
-      >
+      <button className="navbtn" onClick={() => setView('dashboard')}>
         Dashboard
       </button>
     </nav>
@@ -396,22 +263,16 @@ export default function Home() {
 
         <section className="hero">
           <div>
-            <div className="badge">
-              AI PRODUCT FILMING DIRECTOR
-            </div>
+            <div className="badge">AI PRODUCT FILMING DIRECTOR</div>
 
             <h1>Don’t know how to film your product?</h1>
 
             <p className="lead">
-              Show ShootAI what you sell. Get a content concept and
-              exact shot-by-shot instructions you can follow with your
-              phone.
+              Show ShootAI what you sell. Get a content concept and exact
+              shot-by-shot instructions you can follow with your phone.
             </p>
 
-            <button
-              className="cta"
-              onClick={() => setView('create')}
-            >
+            <button className="cta" onClick={() => setView('create')}>
               Create a filming plan →
             </button>
 
@@ -428,6 +289,7 @@ export default function Home() {
                   <br />
                   PRODUCT
                 </div>
+
                 <span>✓ Great framing</span>
               </div>
 
@@ -447,17 +309,14 @@ export default function Home() {
             <article>
               <i>01</i>
               <h3>Show your product</h3>
-              <span>
-                Upload a photo and tell us the key selling point.
-              </span>
+              <span>Upload a photo and tell us the key selling point.</span>
             </article>
 
             <article>
               <i>02</i>
               <h3>Pick a concept</h3>
               <span>
-                ShootAI gives you simple short-form content
-                directions.
+                ShootAI gives you simple short-form content directions.
               </span>
             </article>
 
@@ -487,10 +346,7 @@ export default function Home() {
               <h2>Projects</h2>
             </div>
 
-            <button
-              className="cta small"
-              onClick={() => setView('create')}
-            >
+            <button className="cta small" onClick={() => setView('create')}>
               + New project
             </button>
           </div>
@@ -501,14 +357,10 @@ export default function Home() {
             <h3>Your first product video starts here.</h3>
 
             <p>
-              Create a project and ShootAI will plan every shot for
-              you.
+              Create a project and ShootAI will plan every shot for you.
             </p>
 
-            <button
-              className="cta small"
-              onClick={() => setView('create')}
-            >
+            <button className="cta small" onClick={() => setView('create')}>
               Create project →
             </button>
           </div>
@@ -523,10 +375,7 @@ export default function Home() {
         {nav}
 
         <section className="page narrow">
-          <button
-            className="back"
-            onClick={() => setView('dashboard')}
-          >
+          <button className="back" onClick={() => setView('dashboard')}>
             ← Dashboard
           </button>
 
@@ -534,17 +383,13 @@ export default function Home() {
 
           <h2>What are you filming?</h2>
 
-          <p>
-            Give ShootAI enough context to create a useful plan.
-          </p>
+          <p>Give ShootAI enough context to create a useful plan.</p>
 
           <label className="upload">
             <input
               type="file"
               accept="image/*"
-              onChange={(e) =>
-                pickFile(e.target.files?.[0])
-              }
+              onChange={(e) => pickFile(e.target.files?.[0])}
             />
 
             {image ? (
@@ -596,12 +441,7 @@ export default function Home() {
           </label>
 
           {error && (
-            <p
-              style={{
-                color: '#ff6b6b',
-                marginTop: 12
-              }}
-            >
+            <p style={{ color: '#ff6b6b', marginTop: 12 }}>
               {error}
             </p>
           )}
@@ -626,16 +466,11 @@ export default function Home() {
         {nav}
 
         <section className="page narrow">
-          <button
-            className="back"
-            onClick={() => setView('create')}
-          >
+          <button className="back" onClick={() => setView('create')}>
             ← Product details
           </button>
 
-          <div className="badge">
-            {concepts.length} CONCEPTS
-          </div>
+          <div className="badge">{concepts.length} CONCEPTS</div>
 
           <h2>Choose a direction.</h2>
 
@@ -644,9 +479,7 @@ export default function Home() {
           <div className="cards">
             {concepts.map((concept, i) => (
               <article
-                className={
-                  i === 0 ? 'idea best' : 'idea'
-                }
+                className={i === 0 ? 'idea best' : 'idea'}
                 key={`${concept.title}-${i}`}
               >
                 {i === 0 && <em>AI PICK</em>}
@@ -659,9 +492,7 @@ export default function Home() {
 
                 <p>{concept.description}</p>
 
-                <div className="sequence">
-                  {concept.title}
-                </div>
+                <div className="sequence">{concept.title}</div>
 
                 <button
                   className="outline"
@@ -694,10 +525,7 @@ export default function Home() {
           <section className="page narrow">
             <h2>No shot available.</h2>
 
-            <button
-              className="cta"
-              onClick={() => setView('ideas')}
-            >
+            <button className="cta" onClick={() => setView('ideas')}>
               Back to concepts
             </button>
           </section>
@@ -710,10 +538,7 @@ export default function Home() {
         {nav}
 
         <section className="page narrow">
-          <button
-            className="back"
-            onClick={() => setView('ideas')}
-          >
+          <button className="back" onClick={() => setView('ideas')}>
             ← Concepts
           </button>
 
@@ -737,133 +562,27 @@ export default function Home() {
 
           <ShotGuide shot={s} />
 
-          <div
-            style={{
-              marginTop: 28
-            }}
-          >
-            <div
-              style={{
-                fontSize: 11,
-                color: '#ffd84d',
-                fontWeight: 800,
-                letterSpacing: 1,
-                marginBottom: 8
-              }}
-            >
-              HOW TO SET UP
-            </div>
-
-            <div
-              style={{
-                borderTop: '1px solid #292929',
-                padding: '18px 0'
-              }}
-            >
-              <strong
-                style={{
-                  display: 'block',
-                  marginBottom: 6
-                }}
-              >
-                {s.phonePosition}
-              </strong>
-
-              <span style={{ color: '#aaa' }}>
-                {s.setup}
-              </span>
-            </div>
+          <div className="simple-section">
+            <small>1 · SET IT UP</small>
+            <strong>{s.phonePosition}</strong>
+            <p>{s.setup}</p>
           </div>
 
-          <div
-            style={{
-              borderTop: '1px solid #292929',
-              padding: '18px 0'
-            }}
-          >
-            <small
-              style={{
-                color: '#ffd84d',
-                fontWeight: 800,
-                letterSpacing: 1
-              }}
-            >
-              ☀ LIGHT
-            </small>
+          <div className="simple-section">
+            <small>2 · RECORD</small>
 
-            <strong
-              style={{
-                display: 'block',
-                marginTop: 8
-              }}
-            >
-              {s.lightDirection}
-            </strong>
-          </div>
-
-          <div
-            style={{
-              borderTop: '1px solid #292929',
-              padding: '18px 0'
-            }}
-          >
-            <small
-              style={{
-                color: '#ffd84d',
-                fontWeight: 800,
-                letterSpacing: 1
-              }}
-            >
-              ● RECORD
-            </small>
-
-            <div
-              style={{
-                marginTop: 14,
-                display: 'grid',
-                gap: 10
-              }}
-            >
+            <div className="record-steps">
               {s.recordSteps.map((step, i) => (
-                <div
-                  key={`${step}-${i}`}
-                  style={{
-                    display: 'flex',
-                    gap: 12,
-                    alignItems: 'flex-start'
-                  }}
-                >
-                  <span
-                    style={{
-                      minWidth: 26,
-                      height: 26,
-                      borderRadius: '50%',
-                      background: '#222',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: '#ffd84d'
-                    }}
-                  >
-                    {i + 1}
-                  </span>
-
-                  <span
-                    style={{
-                      paddingTop: 3
-                    }}
-                  >
-                    {step}
-                  </span>
+                <div key={`${step}-${i}`}>
+                  <span>{i + 1}</span>
+                  <p>{step}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="say">
-            <small>WHAT TO SAY</small>
+            <small>3 · SAY</small>
             <strong>{s.say}</strong>
           </div>
 
@@ -891,25 +610,21 @@ export default function Home() {
       <section className="finish">
         <div className="tick">✓</div>
 
-        <div className="badge">
-          FILMING PLAN COMPLETE
-        </div>
+        <div className="badge">FILMING PLAN COMPLETE</div>
 
         <h2>You know exactly what to shoot.</h2>
 
         <p>
-          Follow your six shots while filming, then edit the footage
-          in your preferred editor.
+          Follow your six shots while filming, then edit the footage in
+          your preferred editor.
         </p>
 
         <div className="donegrid">
-          {(concepts[selectedConcept]?.shots || []).map(
-            (s, i) => (
-              <div key={`${s.title}-${i}`}>
-                ✓ <span>{s.title}</span>
-              </div>
-            )
-          )}
+          {(concepts[selectedConcept]?.shots || []).map((s, i) => (
+            <div key={`${s.title}-${i}`}>
+              ✓ <span>{s.title}</span>
+            </div>
+          ))}
         </div>
 
         <button
