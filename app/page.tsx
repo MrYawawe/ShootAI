@@ -1144,7 +1144,7 @@ export default function Home() {
               onChange={(e) =>
                 setName(e.target.value)
               }
-              placeholder="e.g. Papaya Soap"
+              placeholder="Enter your product name"
             />
           </label>
 
