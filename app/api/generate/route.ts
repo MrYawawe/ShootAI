@@ -9,13 +9,47 @@ type RequestBody = {
   image?: string;
 };
 
+function extractOutputText(data: any): string {
+  // Some Responses API responses expose this directly.
+  if (
+    typeof data?.output_text === 'string' &&
+    data.output_text.trim()
+  ) {
+    return data.output_text.trim();
+  }
+
+  // Otherwise read the text from the output array.
+  if (Array.isArray(data?.output)) {
+    const pieces: string[] = [];
+
+    for (const item of data.output) {
+      if (!Array.isArray(item?.content)) continue;
+
+      for (const content of item.content) {
+        if (
+          typeof content?.text === 'string' &&
+          content.text.trim()
+        ) {
+          pieces.push(content.text);
+        }
+      }
+    }
+
+    return pieces.join('\n').trim();
+  }
+
+  return '';
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as RequestBody;
 
     const name = body.name?.trim();
-    const sellingPoint = body.sellingPoint?.trim() || '';
-    const goal = body.goal?.trim() || 'Product Showcase';
+    const sellingPoint =
+      body.sellingPoint?.trim() || '';
+    const goal =
+      body.goal?.trim() || 'Product Showcase';
     const image = body.image;
 
     if (!name) {
@@ -29,7 +63,10 @@ export async function POST(request: Request) {
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY is not configured.' },
+        {
+          error:
+            'OPENAI_API_KEY is not configured.'
+        },
         { status: 500 }
       );
     }
@@ -39,277 +76,273 @@ You are ShootAI, an AI product video director for complete beginners.
 
 The user has a physical product and wants to film a short-form product video using a phone.
 
-Your job is NOT to generate a video.
-Your job is NOT to edit a video.
+Your job is NOT to generate or edit video.
 
 Your job is to tell the user exactly how to physically film the product, one shot at a time.
 
-The user should be able to follow your directions even if they know nothing about filming.
-
-IMPORTANT:
 Use extremely simple English.
-Avoid professional filmmaking jargon.
-Do not say things like dolly, truck, pan, tilt, focal length, aperture, depth of field, hero angle, or cinematic push-in.
 
 Create exactly 3 different video concepts.
 Each concept must contain exactly 6 shots.
 
-Every shot must make these things completely clear:
+EVERY SHOT MUST CLEARLY EXPLAIN:
 
-1. Where is the phone recording from?
-2. Is the user holding the phone or keeping it fixed?
-3. Is the product being held or placed down?
-4. What EXACTLY moves or happens during the recording?
-5. How long should the user record?
-6. What should the user say, if anything?
+1. Where the phone records from.
+2. Whether the phone is held or fixed.
+3. Whether the product is held or placed down.
+4. What physically happens during the shot.
+5. How long to record.
+6. What to say, if anything.
 
-PHYSICAL LOGIC IS VERY IMPORTANT.
+PHYSICAL LOGIC:
 
-The setup and action must make sense together.
+The setup and action must always work together.
 
-Examples:
+For example:
 
-If the action is "unwrap the soap":
-- The product cannot be described as sitting untouched on a table.
-- The user may need to hold the soap, hold the wrapper, or use one hand to remove the wrapper.
-- The action must explicitly say "Slide the wrapper off the soap" or "Peel the wrapper off."
+If the user unwraps a soap, do not simply say "move the product."
 
-If the action is "pour the drink":
-- The product must be held.
-- The action should say exactly what to pour and where.
+Use:
+actionType: "product_action"
+actionName: "UNWRAP THE SOAP"
+actionVisual: "unwrap"
 
-If the action is "open the lid":
-- The product setup must allow the user to open the lid.
-- Do not simply say "move the product."
+The instruction could be:
+"Hold the soap and slowly slide the wrapper off."
 
-If the action is "rotate the bottle":
-- Say "Slowly turn the bottle."
-- Do not say "move the product."
+If an action realistically needs two hands, keep the phone fixed.
 
-Never create a setup that contradicts the action.
+If the action can easily be performed with one hand, the phone may be held.
 
-HANDHELD PHONE RULE:
-Assume the user holds the phone by default.
-Use phoneSetup "fixed" only when keeping the phone still is genuinely important for that shot.
+Do not create physically impossible instructions.
+
+PHONE SETUP:
+
+phoneSetup must be:
+"hold"
+or
+"fixed"
+
+Use "hold" by default.
+
+Use "fixed" when the product action reasonably requires both hands or when a completely stationary camera is important.
 
 PRODUCT SETUP:
-Use:
-- "hold" when the user needs to hold or manipulate the product.
-- "table" when the product should sit on a table.
-- "surface" when another flat surface makes more sense.
+
+productSetup must be:
+"hold"
+"table"
+or
+"surface"
+
+Use "hold" when the product needs to be held or manipulated.
+
+Use "table" when it should remain on a table.
+
+Use "surface" for another flat surface.
 
 CAMERA DIRECTION:
-recordFrom must be exactly one of:
-- "front"
-- "top"
-- "side"
-- "above_side"
-- "below"
 
-ACTION SYSTEM:
+recordFrom must be exactly:
+"front"
+"top"
+"side"
+"above_side"
+or
+"below"
 
-Each shot must have an actionType.
+ACTION TYPES:
 
-actionType must be exactly one of:
-- "camera_move"
-- "product_move"
-- "product_action"
-- "still"
+actionType must be exactly:
+"camera_move"
+"product_move"
+"product_action"
+or
+"still"
 
-Use "camera_move" ONLY when the PHONE itself moves while recording.
+CAMERA_MOVE:
 
-Examples:
-- move phone closer
-- move phone away
-- move phone left
-- move phone right
-- move phone up
-- move phone down
-- move phone around product
-
-Use "product_move" when the whole product changes position without another special interaction.
+Use only when the phone itself moves during recording.
 
 Examples:
-- bring product closer to camera
-- move product left
-- move product right
-- lift product upward
-- lower product
+Move phone closer.
+Move phone away.
+Move phone left.
+Move phone right.
+Move phone upward.
+Move phone around the product.
 
-Use "product_action" when the user DOES something to the product.
+PRODUCT_MOVE:
+
+Use when the whole product changes position.
 
 Examples:
-- unwrap
-- peel
-- open
-- close
-- pour
-- squeeze
-- press
-- pump
-- spray
-- twist
-- rotate
-- flip
-- shake
-- pull
-- push
-- slide
-- lift a lid
-- remove a cap
-- put on a cap
-- take product out of packaging
-- place product down
-- pick product up
-- tap product
-- wipe product
-- apply product
+Bring the product closer.
+Slide the whole product right.
+Lift the whole product toward the camera.
 
-For product_action, actionName must describe the REAL action.
+PRODUCT_ACTION:
 
-Good:
+Use when something is physically done to the product.
+
+Examples:
+unwrap
+open
+close
+pour
+squeeze
+press
+spray
+twist
+rotate
+flip
+shake
+pull
+push
+slide
+lift
+remove
+place
+pick up
+tap
+wipe
+apply
+
+Do not use generic "move product" when a more specific action exists.
+
+ACTION NAME:
+
+actionName must be a very short command.
+
+Examples:
+
 "UNWRAP THE SOAP"
-"OPEN THE LID"
+"REMOVE THE CAP"
+"OPEN THE BOX"
 "POUR THE DRINK"
 "SQUEEZE THE TUBE"
 "TURN THE BOTTLE"
-"REMOVE THE CAP"
-
-Bad:
-"MOVE THE PRODUCT"
-"SHOW THE PRODUCT"
-"USE THE PRODUCT"
-
-The actionInstruction must tell the user exactly what to physically do in ONE short sentence.
-
-Good:
-"Hold the soap and slowly slide the wrapper off."
-"Hold the bottle and slowly twist the cap off."
-"Lift the bottle and pour the drink into the glass."
-"Slowly turn the bottle so the front label comes into view."
-
-Bad:
-"Create an engaging reveal."
-"Showcase the packaging."
-"Move the product dynamically."
+"SLIDE THE BOX"
+"KEEP STILL"
 
 ACTION VISUAL:
 
-For product_action, actionVisual must be exactly one of:
-- "unwrap"
-- "open"
-- "close"
-- "pour"
-- "squeeze"
-- "press"
-- "spray"
-- "twist"
-- "rotate"
-- "flip"
-- "shake"
-- "pull"
-- "push"
-- "slide"
-- "lift"
-- "remove"
-- "place"
-- "pick_up"
-- "tap"
-- "wipe"
-- "apply"
-- "generic"
+actionVisual must be exactly one of:
 
-Choose the closest visual.
+"unwrap"
+"open"
+"close"
+"pour"
+"squeeze"
+"press"
+"spray"
+"twist"
+"rotate"
+"flip"
+"shake"
+"pull"
+"push"
+"slide"
+"lift"
+"remove"
+"place"
+"pick_up"
+"tap"
+"wipe"
+"apply"
+"generic"
 
-For camera_move and product_move, movement must be exactly one of:
-- "closer"
-- "away"
-- "left"
-- "right"
-- "up"
-- "down"
-- "around"
+Choose the closest matching visual.
 
-For still shots, movement must be "none".
+MOVING OBJECT:
 
-For product_action, movement can be "none" because actionVisual describes the important action.
+movingObject must be:
+"phone"
+"product"
+or
+"none"
 
-movingObject must be exactly:
-- "phone"
-- "product"
-- "none"
+camera_move = "phone"
+product_move = "product"
+product_action = "product"
+still = "none"
 
-Rules:
-- camera_move = movingObject "phone"
-- product_move = movingObject "product"
-- product_action = movingObject "product"
-- still = movingObject "none"
+MOVEMENT:
+
+movement must be exactly:
+"none"
+"closer"
+"away"
+"left"
+"right"
+"up"
+"down"
+or
+"around"
+
+Use "none" for product_action unless directional movement is genuinely needed.
+
+MOVEMENT SPEED:
 
 movementSpeed must be:
-- "slow"
-- "normal"
+"slow"
+or
+"normal"
 
-Keep every instruction short.
+ACTION INSTRUCTION:
 
-Do NOT describe exact centimeters or complicated angles.
+actionInstruction must explain exactly what to physically do.
 
-Do NOT require professional equipment.
+Keep it to one short sentence.
 
-Do NOT assume a tripod unless phoneSetup is "fixed".
+Good:
+"Slowly slide the wrapper off the soap."
+"Twist the cap off the bottle."
+"Slowly turn the bottle to show the label."
 
-Do NOT mention the uploaded image in the filming instructions.
+Bad:
+"Show the product."
+"Create a reveal."
+"Make it cinematic."
+"Move dynamically."
 
-The uploaded image is only there so you can understand what the product looks like.
+RECORD INSTRUCTION:
 
-HOOK:
-The first shot should get attention quickly.
+recordInstruction should explain what to capture while recording.
 
-FLOW:
-The six shots should form one coherent short video, not six unrelated shots.
-
-VARIETY:
-Do not make every shot the same.
-Use product actions when they naturally demonstrate the product.
+Keep it extremely simple.
 
 WHAT TO SAY:
-"say" should be a short natural line the seller can speak.
-If speaking is unnecessary, return an empty string.
 
-Return ONLY valid JSON.
-No markdown.
-No explanation.
+say should contain a short natural spoken line.
 
-Use exactly this structure:
+If the shot does not need speech, return an empty string.
 
-{
-  "concepts": [
-    {
-      "title": "Concept title",
-      "hook": "Short hook",
-      "description": "One short description",
-      "shots": [
-        {
-          "title": "Short shot title",
-          "duration": "2-3 sec",
-          "recordFrom": "front",
-          "phoneSetup": "hold",
-          "productSetup": "hold",
-          "setupInstruction": "Simple setup instruction.",
-          "aimInstruction": "Simple instruction explaining where to point the phone.",
-          "actionType": "product_action",
-          "actionName": "UNWRAP THE SOAP",
-          "actionVisual": "unwrap",
-          "movingObject": "product",
-          "movement": "none",
-          "movementSpeed": "slow",
-          "actionInstruction": "Hold the soap and slowly slide the wrapper off.",
-          "recordInstruction": "Keep recording while the wrapper comes off.",
-          "say": ""
-        }
-      ]
-    }
-  ]
-}
+IMPORTANT:
+
+Do not use professional filmmaking jargon.
+
+Do not mention:
+dolly
+truck
+focal length
+aperture
+depth of field
+cinematic push-in
+
+Do not require professional equipment.
+
+Do not use exact centimeter measurements.
+
+Do not mention the uploaded product image in the instructions.
+
+The uploaded image is only for understanding the product.
+
+The first shot should get attention quickly.
+
+All 6 shots must work together as ONE short product video.
+
+Return only the required structured response.
 `;
 
     const userText = `
@@ -332,181 +365,261 @@ Create 3 beginner-friendly filming concepts for this product.
       }
     ];
 
-    if (image && image.startsWith('data:image/')) {
+    if (
+      image &&
+      image.startsWith('data:image/')
+    ) {
       content.push({
         type: 'input_image',
         image_url: image
       });
     }
 
-    const response = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-5-mini',
-        instructions,
-        input: [
-          {
-            role: 'user',
-            content
-          }
-        ],
-        text: {
-          format: {
-            type: 'json_schema',
-            name: 'shootai_filming_plan',
-            strict: true,
-            schema: {
-              type: 'object',
-              additionalProperties: false,
-              properties: {
-                concepts: {
-                  type: 'array',
-                  minItems: 3,
-                  maxItems: 3,
-                  items: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                      title: { type: 'string' },
-                      hook: { type: 'string' },
-                      description: { type: 'string' },
-                      shots: {
-                        type: 'array',
-                        minItems: 6,
-                        maxItems: 6,
-                        items: {
-                          type: 'object',
-                          additionalProperties: false,
-                          properties: {
-                            title: { type: 'string' },
-                            duration: { type: 'string' },
-                            recordFrom: {
-                              type: 'string',
-                              enum: [
-                                'front',
-                                'top',
-                                'side',
-                                'above_side',
-                                'below'
-                              ]
+    const response = await fetch(
+      'https://api.openai.com/v1/responses',
+      {
+        method: 'POST',
+
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+
+        body: JSON.stringify({
+          model: 'gpt-5-mini',
+
+          instructions,
+
+          input: [
+            {
+              role: 'user',
+              content
+            }
+          ],
+
+          max_output_tokens: 12000,
+
+          text: {
+            format: {
+              type: 'json_schema',
+              name: 'shootai_filming_plan',
+              strict: true,
+
+              schema: {
+                type: 'object',
+                additionalProperties: false,
+
+                properties: {
+                  concepts: {
+                    type: 'array',
+                    minItems: 3,
+                    maxItems: 3,
+
+                    items: {
+                      type: 'object',
+                      additionalProperties: false,
+
+                      properties: {
+                        title: {
+                          type: 'string'
+                        },
+
+                        hook: {
+                          type: 'string'
+                        },
+
+                        description: {
+                          type: 'string'
+                        },
+
+                        shots: {
+                          type: 'array',
+                          minItems: 6,
+                          maxItems: 6,
+
+                          items: {
+                            type: 'object',
+                            additionalProperties:
+                              false,
+
+                            properties: {
+                              title: {
+                                type: 'string'
+                              },
+
+                              duration: {
+                                type: 'string'
+                              },
+
+                              recordFrom: {
+                                type: 'string',
+                                enum: [
+                                  'front',
+                                  'top',
+                                  'side',
+                                  'above_side',
+                                  'below'
+                                ]
+                              },
+
+                              phoneSetup: {
+                                type: 'string',
+                                enum: [
+                                  'hold',
+                                  'fixed'
+                                ]
+                              },
+
+                              productSetup: {
+                                type: 'string',
+                                enum: [
+                                  'hold',
+                                  'table',
+                                  'surface'
+                                ]
+                              },
+
+                              setupInstruction: {
+                                type: 'string'
+                              },
+
+                              aimInstruction: {
+                                type: 'string'
+                              },
+
+                              actionType: {
+                                type: 'string',
+                                enum: [
+                                  'camera_move',
+                                  'product_move',
+                                  'product_action',
+                                  'still'
+                                ]
+                              },
+
+                              actionName: {
+                                type: 'string'
+                              },
+
+                              actionVisual: {
+                                type: 'string',
+                                enum: [
+                                  'unwrap',
+                                  'open',
+                                  'close',
+                                  'pour',
+                                  'squeeze',
+                                  'press',
+                                  'spray',
+                                  'twist',
+                                  'rotate',
+                                  'flip',
+                                  'shake',
+                                  'pull',
+                                  'push',
+                                  'slide',
+                                  'lift',
+                                  'remove',
+                                  'place',
+                                  'pick_up',
+                                  'tap',
+                                  'wipe',
+                                  'apply',
+                                  'generic'
+                                ]
+                              },
+
+                              movingObject: {
+                                type: 'string',
+                                enum: [
+                                  'phone',
+                                  'product',
+                                  'none'
+                                ]
+                              },
+
+                              movement: {
+                                type: 'string',
+                                enum: [
+                                  'none',
+                                  'closer',
+                                  'away',
+                                  'left',
+                                  'right',
+                                  'up',
+                                  'down',
+                                  'around'
+                                ]
+                              },
+
+                              movementSpeed: {
+                                type: 'string',
+                                enum: [
+                                  'slow',
+                                  'normal'
+                                ]
+                              },
+
+                              actionInstruction: {
+                                type: 'string'
+                              },
+
+                              recordInstruction: {
+                                type: 'string'
+                              },
+
+                              say: {
+                                type: 'string'
+                              }
                             },
-                            phoneSetup: {
-                              type: 'string',
-                              enum: ['hold', 'fixed']
-                            },
-                            productSetup: {
-                              type: 'string',
-                              enum: ['hold', 'table', 'surface']
-                            },
-                            setupInstruction: { type: 'string' },
-                            aimInstruction: { type: 'string' },
-                            actionType: {
-                              type: 'string',
-                              enum: [
-                                'camera_move',
-                                'product_move',
-                                'product_action',
-                                'still'
-                              ]
-                            },
-                            actionName: { type: 'string' },
-                            actionVisual: {
-                              type: 'string',
-                              enum: [
-                                'unwrap',
-                                'open',
-                                'close',
-                                'pour',
-                                'squeeze',
-                                'press',
-                                'spray',
-                                'twist',
-                                'rotate',
-                                'flip',
-                                'shake',
-                                'pull',
-                                'push',
-                                'slide',
-                                'lift',
-                                'remove',
-                                'place',
-                                'pick_up',
-                                'tap',
-                                'wipe',
-                                'apply',
-                                'generic'
-                              ]
-                            },
-                            movingObject: {
-                              type: 'string',
-                              enum: ['phone', 'product', 'none']
-                            },
-                            movement: {
-                              type: 'string',
-                              enum: [
-                                'none',
-                                'closer',
-                                'away',
-                                'left',
-                                'right',
-                                'up',
-                                'down',
-                                'around'
-                              ]
-                            },
-                            movementSpeed: {
-                              type: 'string',
-                              enum: ['slow', 'normal']
-                            },
-                            actionInstruction: { type: 'string' },
-                            recordInstruction: { type: 'string' },
-                            say: { type: 'string' }
-                          },
-                          required: [
-                            'title',
-                            'duration',
-                            'recordFrom',
-                            'phoneSetup',
-                            'productSetup',
-                            'setupInstruction',
-                            'aimInstruction',
-                            'actionType',
-                            'actionName',
-                            'actionVisual',
-                            'movingObject',
-                            'movement',
-                            'movementSpeed',
-                            'actionInstruction',
-                            'recordInstruction',
-                            'say'
-                          ]
+
+                            required: [
+                              'title',
+                              'duration',
+                              'recordFrom',
+                              'phoneSetup',
+                              'productSetup',
+                              'setupInstruction',
+                              'aimInstruction',
+                              'actionType',
+                              'actionName',
+                              'actionVisual',
+                              'movingObject',
+                              'movement',
+                              'movementSpeed',
+                              'actionInstruction',
+                              'recordInstruction',
+                              'say'
+                            ]
+                          }
                         }
-                      }
-                    },
-                    required: [
-                      'title',
-                      'hook',
-                      'description',
-                      'shots'
-                    ]
+                      },
+
+                      required: [
+                        'title',
+                        'hook',
+                        'description',
+                        'shots'
+                      ]
+                    }
                   }
-                }
-              },
-              required: ['concepts']
+                },
+
+                required: ['concepts']
+              }
             }
           }
-        }
-      })
-    });
+        })
+      }
+    );
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('OpenAI error:', data);
+      console.error(
+        'OpenAI API error:',
+        JSON.stringify(data)
+      );
 
       return NextResponse.json(
         {
@@ -518,36 +631,64 @@ Create 3 beginner-friendly filming concepts for this product.
       );
     }
 
-    const outputText = data.output_text;
+    const outputText =
+      extractOutputText(data);
 
     if (!outputText) {
-      console.error('No output_text:', data);
+      console.error(
+        'ShootAI empty response:',
+        JSON.stringify(data)
+      );
 
       return NextResponse.json(
-        { error: 'ShootAI received an empty response.' },
+        {
+          error:
+            'ShootAI received an empty response.'
+        },
         { status: 500 }
       );
     }
-
-    let result;
 
     try {
-      result = JSON.parse(outputText);
-    } catch {
-      console.error('Invalid JSON:', outputText);
+      const result =
+        JSON.parse(outputText);
+
+      if (
+        !Array.isArray(result?.concepts) ||
+        result.concepts.length !== 3
+      ) {
+        throw new Error(
+          'Invalid concepts response.'
+        );
+      }
+
+      return NextResponse.json(result);
+    } catch (error) {
+      console.error(
+        'ShootAI JSON parsing error:',
+        outputText,
+        error
+      );
 
       return NextResponse.json(
-        { error: 'ShootAI received an invalid response.' },
+        {
+          error:
+            'ShootAI could not read the generated filming plan.'
+        },
         { status: 500 }
       );
     }
-
-    return NextResponse.json(result);
   } catch (error) {
-    console.error('Generate route error:', error);
+    console.error(
+      'Generate route error:',
+      error
+    );
 
     return NextResponse.json(
-      { error: 'Something went wrong while generating your filming plan.' },
+      {
+        error:
+          'Something went wrong while generating your filming plan.'
+      },
       { status: 500 }
     );
   }
