@@ -5,30 +5,24 @@ import { useState } from 'react';
 type Shot = {
   title: string;
   duration: string;
-  camera: string;
-  phonePosition: string;
-  distance: string;
-  subjectPosition: string;
-  lightDirection: string;
-  setup: string;
-  recordSteps: string[];
-  say: string;
-  visualType:
-    | 'product_front'
-    | 'product_top'
-    | 'product_hand'
-    | 'person_product'
-    | 'product_movement'
-    | 'detail';
+  recordFrom: 'front' | 'top' | 'side' | 'above_side' | 'below';
+  phoneSetup: 'hold' | 'fixed';
+  productSetup: 'hold' | 'table' | 'surface';
+  setupInstruction: string;
+  aimInstruction: string;
+  movingObject: 'phone' | 'product' | 'none';
   movement:
     | 'none'
-    | 'toward_camera'
-    | 'away_camera'
-    | 'left_to_right'
-    | 'right_to_left'
-    | 'top_to_bottom'
-    | 'bottom_to_top';
-  lightSide: 'left' | 'right' | 'front';
+    | 'closer'
+    | 'away'
+    | 'left'
+    | 'right'
+    | 'up'
+    | 'down'
+    | 'around';
+  movementSpeed: 'slow' | 'normal';
+  recordInstruction: string;
+  say: string;
 };
 
 type Concept = {
@@ -46,124 +40,161 @@ const goals = [
   'Problem → Solution'
 ];
 
-function ShotGuide({ shot }: { shot: Shot }) {
-  const isPerson = shot.visualType === 'person_product';
-  const isHand = shot.visualType === 'product_hand';
-  const isTop = shot.visualType === 'product_top';
+const directionInfo = {
+  front: {
+    title: 'RECORD FROM THE FRONT',
+    short: 'FRONT'
+  },
+  top: {
+    title: 'RECORD FROM THE TOP',
+    short: 'TOP'
+  },
+  side: {
+    title: 'RECORD FROM THE SIDE',
+    short: 'SIDE'
+  },
+  above_side: {
+    title: 'RECORD FROM ABOVE + SIDE',
+    short: 'ABOVE + SIDE'
+  },
+  below: {
+    title: 'RECORD FROM BELOW',
+    short: 'BELOW'
+  }
+};
 
-  const movementClass = {
-    none: 'motion-still',
-    toward_camera: 'motion-toward',
-    away_camera: 'motion-away',
-    left_to_right: 'motion-right',
-    right_to_left: 'motion-left',
-    top_to_bottom: 'motion-down',
-    bottom_to_top: 'motion-up'
-  }[shot.movement];
-
-  const movementLabel = {
-    none: 'KEEP STILL',
-    toward_camera: 'MOVE TOWARD PHONE',
-    away_camera: 'MOVE AWAY FROM PHONE',
-    left_to_right: 'MOVE LEFT TO RIGHT',
-    right_to_left: 'MOVE RIGHT TO LEFT',
-    top_to_bottom: 'MOVE DOWN',
-    bottom_to_top: 'MOVE UP'
-  }[shot.movement];
+function DirectionDiagram({ shot }: { shot: Shot }) {
+  const direction = directionInfo[shot.recordFrom] || directionInfo.front;
 
   return (
-    <div className="director-demo">
-      <div className="demo-header">
-        <span>HOW TO FILM THIS SHOT</span>
-        <span>{shot.duration}</span>
-      </div>
+    <div className={`new-director-diagram direction-${shot.recordFrom}`}>
+      <div className="diagram-question">WHERE DO I RECORD FROM?</div>
 
-      <div className={`demo-stage ${isTop ? 'top-view' : ''}`}>
-        <div className="demo-grid-line vertical" />
-        <div className="demo-grid-line horizontal" />
+      <h3>{direction.title}</h3>
 
-        <div className={`demo-light light-${shot.lightSide}`}>
-          <div className="light-symbol">☀</div>
-          <b>LIGHT</b>
-          <small>
-            {shot.lightSide === 'left'
-              ? 'FROM LEFT'
-              : shot.lightSide === 'right'
-              ? 'FROM RIGHT'
-              : 'FROM FRONT'}
-          </small>
+      <div className="direction-stage">
+        <div className="direction-phone">
+          <div className="direction-camera-dot" />
+          <span>PHONE</span>
         </div>
 
-        <div className="subject-zone">
-          {isPerson && (
-            <div className="person-guide">
-              <div className="person-head" />
-              <div className="person-body" />
-            </div>
-          )}
+        <div className="camera-path">
+          <span className="path-line" />
+          <span className="path-arrow">›</span>
+        </div>
 
-          {isHand && (
-            <div className="hand-label">
-              HOLD IN YOUR HAND
-            </div>
-          )}
+        <div className="direction-product">
+          <span>PRODUCT</span>
+        </div>
+      </div>
 
-          <div className={`animated-product ${movementClass}`}>
-            <div className="product-shape">
-              <span>PRODUCT</span>
-            </div>
+      <div className="direction-answer">
+        <span>YOUR CAMERA</span>
+        <strong>{direction.short}</strong>
+      </div>
+    </div>
+  );
+}
 
-            {shot.movement !== 'none' && (
-              <div className="motion-trail">
-                {shot.movement === 'toward_camera' && '↓'}
-                {shot.movement === 'away_camera' && '↑'}
-                {shot.movement === 'left_to_right' && '→'}
-                {shot.movement === 'right_to_left' && '←'}
-                {shot.movement === 'top_to_bottom' && '↓'}
-                {shot.movement === 'bottom_to_top' && '↑'}
-              </div>
+function SetupGuide({ shot }: { shot: Shot }) {
+  const phoneText =
+    shot.phoneSetup === 'hold' ? 'HOLD YOUR PHONE' : 'KEEP PHONE FIXED';
+
+  const productText =
+    shot.productSetup === 'hold'
+      ? 'HOLD THE PRODUCT'
+      : shot.productSetup === 'table'
+      ? 'PUT PRODUCT ON TABLE'
+      : 'PUT PRODUCT ON A SURFACE';
+
+  return (
+    <div className="director-step-card">
+      <div className="step-number">2</div>
+
+      <div className="step-content">
+        <small>SET UP</small>
+        <h3>{phoneText}</h3>
+
+        <div className="setup-choices">
+          <div>
+            <span>PHONE</span>
+            <strong>
+              {shot.phoneSetup === 'hold' ? 'HOLD IT' : 'KEEP IT FIXED'}
+            </strong>
+          </div>
+
+          <div>
+            <span>PRODUCT</span>
+            <strong>{productText.replace('THE PRODUCT', 'IT')}</strong>
+          </div>
+        </div>
+
+        <p>{shot.setupInstruction}</p>
+      </div>
+    </div>
+  );
+}
+
+function MovementGuide({ shot }: { shot: Shot }) {
+  const movingPhone = shot.movingObject === 'phone';
+  const movingProduct = shot.movingObject === 'product';
+
+  const movementClass = `move-${shot.movement}`;
+
+  const movementTitle =
+    shot.movement === 'none'
+      ? 'KEEP STILL'
+      : shot.movingObject === 'phone'
+      ? 'MOVE YOUR PHONE'
+      : 'MOVE THE PRODUCT';
+
+  return (
+    <div className="movement-card">
+      <div className="step-number">3</div>
+
+      <div className="step-content">
+        <small>HOW DO I MOVE?</small>
+        <h3>{movementTitle}</h3>
+
+        <div className={`movement-stage movement-${shot.movement}`}>
+          <div
+            className={`mini-phone ${
+              movingPhone ? `moving-object ${movementClass}` : ''
+            }`}
+          >
+            <div className="mini-camera-dot" />
+            <span>PHONE</span>
+          </div>
+
+          <div className="movement-dots">
+            {shot.movement === 'none' ? (
+              <span className="still-mark">STAY STILL</span>
+            ) : (
+              <>
+                <i />
+                <i />
+                <i />
+                <b>›</b>
+              </>
             )}
           </div>
 
-          <div className="movement-label">
-            <span className="record-dot" />
-            {movementLabel}
+          <div
+            className={`mini-product ${
+              movingProduct ? `moving-object ${movementClass}` : ''
+            }`}
+          >
+            PRODUCT
           </div>
         </div>
 
-        <div className="phone-zone">
-          <div className="distance-line">
-            <span />
-            <b>{shot.distance}</b>
-            <span />
+        <p>{shot.recordInstruction}</p>
+
+        {shot.movement !== 'none' && (
+          <div className="speed-label">
+            {shot.movementSpeed === 'slow' ? 'MOVE SLOWLY' : 'NORMAL SPEED'}
           </div>
-
-          <div className="phone-icon">
-            <div className="phone-camera" />
-
-            <div className="phone-screen">
-              <div className="focus-box" />
-            </div>
-          </div>
-
-          <b className="phone-name">YOUR PHONE</b>
-        </div>
-
-        <div className="subject-position">
-          {shot.subjectPosition}
-        </div>
-      </div>
-
-      <div className="demo-bottom">
-        <div>
-          <small>PHONE POSITION</small>
-          <strong>{shot.phonePosition}</strong>
-        </div>
-
-        <div>
-          <small>LIGHT</small>
-          <strong>{shot.lightDirection}</strong>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -324,8 +355,7 @@ export default function Home() {
               <i>03</i>
               <h3>Follow the director</h3>
               <span>
-                Film one shot at a time with clear setup, lighting and
-                recording instructions.
+                Film one shot at a time with simple visual directions.
               </span>
             </article>
           </div>
@@ -560,29 +590,44 @@ export default function Home() {
 
           <h2>{s.title}</h2>
 
-          <ShotGuide shot={s} />
-
-          <div className="simple-section">
-            <small>1 · SET IT UP</small>
-            <strong>{s.phonePosition}</strong>
-            <p>{s.setup}</p>
+          <div className="director-intro">
+            Follow these steps. Don’t worry about camera terms.
           </div>
 
-          <div className="simple-section">
-            <small>2 · RECORD</small>
+          <div className="director-step-card direction-step">
+            <div className="step-number">1</div>
 
-            <div className="record-steps">
-              {s.recordSteps.map((step, i) => (
-                <div key={`${step}-${i}`}>
-                  <span>{i + 1}</span>
-                  <p>{step}</p>
-                </div>
-              ))}
+            <div className="step-content">
+              <small>CAMERA DIRECTION</small>
+              <DirectionDiagram shot={s} />
+
+              <p className="aim-instruction">{s.aimInstruction}</p>
+            </div>
+          </div>
+
+          <SetupGuide shot={s} />
+
+          <MovementGuide shot={s} />
+
+          <div className="record-card">
+            <div className="step-number">4</div>
+
+            <div className="step-content">
+              <small>RECORD</small>
+
+              <h3>RECORD FOR {s.duration.toUpperCase()}</h3>
+
+              <div className="record-timer">
+                <span className="big-record-dot" />
+                <strong>{s.duration}</strong>
+              </div>
+
+              <p>{s.recordInstruction}</p>
             </div>
           </div>
 
           <div className="say">
-            <small>3 · SAY</small>
+            <small>WHAT TO SAY</small>
             <strong>{s.say}</strong>
           </div>
 
