@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -44,10 +45,8 @@ export async function POST(request: Request) {
     const body = (await request.json()) as RequestBody;
 
     const name = body.name?.trim();
-    const sellingPoint =
-      body.sellingPoint?.trim() || '';
-    const goal =
-      body.goal?.trim() || 'Product Showcase';
+    const sellingPoint = body.sellingPoint?.trim() || '';
+    const goal = body.goal?.trim() || 'Product Showcase';
     const image = body.image;
 
     if (!name) {
@@ -61,9 +60,7 @@ export async function POST(request: Request) {
 
     if (!apiKey) {
       return NextResponse.json(
-        {
-          error: 'OPENAI_API_KEY is not configured.'
-        },
+        { error: 'OPENAI_API_KEY is not configured.' },
         { status: 500 }
       );
     }
@@ -482,6 +479,10 @@ Do not make unsupported claims.
 
 When the problem cannot realistically be shown, it can be communicated naturally through dialogue instead.
 
+For a problem-only shot, focus on the creator expressing the problem.
+
+Do not reveal or require the product before the product-introduction shot.
+
 ==================================================
 M. CREATE ONE VIDEO CONCEPT
 ==================================================
@@ -517,11 +518,11 @@ Every shot must clearly answer:
 
 1. Where is the phone?
 2. Is the phone handheld or fixed?
-3. Where is the product?
+3. Where is the product, if it is needed in this shot?
 4. What should be visible?
 5. What exactly should the user do?
 6. What should they record?
-7. What should they say?
+7. What should they say, if anything?
 8. How long should they record?
 
 Use simple English.
@@ -583,6 +584,8 @@ or
 "surface"
 
 The setup must physically match the action.
+
+For a creator-only problem shot, do not instruct the creator to hold, show, or reveal the product. The productSetup field is required by the output format, but setupInstruction and aimInstruction must describe the actual creator-only shot.
 
 ==================================================
 R. ACTION TYPE
@@ -715,6 +718,8 @@ Examples:
 
 "Point the camera at the front label."
 
+For a creator-only shot, describe the creator instead of the product.
+
 It must match the actual shot.
 
 ==================================================
@@ -740,23 +745,108 @@ Tell the user exactly what footage to capture.
 Do not include editing instructions.
 
 ==================================================
-Z. WHAT TO SAY
+Z. WHAT TO SAY — NATURAL SPOKEN DIALOGUE
 ==================================================
 
-say contains the spoken line.
+The "say" field is the exact line a real person would speak while recording this shot.
 
 It may contain:
 
 - direct-to-camera dialogue
-- voice-over
-- short product line
+- natural voice-over
+- a short spoken product line
 - an empty string when speech is unnecessary
 
-For UGC, use natural conversational dialogue.
+IMPORTANT:
 
-For Product Showcase, speech may be unnecessary.
+Write for the human voice, NOT for an advertisement, product listing, slogan, caption, or brochure.
 
-Never invent unsupported claims.
+The line should sound like something a normal creator would comfortably say out loud.
+
+Use simple everyday English.
+
+Prefer natural, complete sentences over compressed marketing phrases.
+
+Keep most spoken lines to approximately 4–14 words, depending on the shot duration.
+
+A short shot may need only a few words.
+
+Do not force a spoken line into every shot.
+
+If the visual tells the story clearly, return an empty string: "".
+
+Do not write dialogue just to fill the field.
+
+MATCH THE ACTUAL SHOT:
+
+- If the creator is talking about a problem, the line should express that problem naturally.
+- If the creator is introducing the product, the line should introduce what viewers are seeing.
+- If the creator is opening the packaging, the line may describe that moment conversationally.
+- If the creator is demonstrating a feature, the line should relate to that visible action.
+- If the shot is a silent close-up or beauty shot, the line may be empty.
+- If the product has not appeared yet, do not mention or reveal it prematurely unless the story specifically calls for a verbal teaser.
+
+AVOID AI-SOUNDING LANGUAGE:
+
+- awkward sentence fragments
+- product-listing descriptions
+- exaggerated excitement
+- generic sales slogans
+- unnatural dramatic wording
+- robotic feature announcements
+- corporate language
+- repetitive sentence structures
+- unnecessary product-name repetition
+- excessive adjectives
+- forced calls to action
+
+Avoid phrases such as:
+
+"Experience the ultimate..."
+"Discover the power of..."
+"Elevate your everyday..."
+"Your perfect companion..."
+"Unlock a new level..."
+"Designed for your lifestyle..."
+"Compact case — earbuds ready inside."
+"Premium quality meets convenience."
+
+These are examples of the STYLE to avoid, not a list of forbidden words.
+
+GOOD EXAMPLES OF NATURAL SPEECH:
+
+When opening an earbuds case:
+"Okay, let me show you what's inside."
+
+When showing a visible product detail:
+"Here's a closer look at it."
+
+When showing a product for the first time:
+"So, this is the one I wanted to show you."
+
+When demonstrating a simple action:
+"Let me show you how it works."
+
+When the shot does not need dialogue:
+""
+
+These are style examples only. Do not copy them mechanically into unrelated products or shots.
+
+Do not invent personal experiences.
+
+Do not claim the creator has used the product for weeks, loves it, recommends it, or experienced results unless the user provided that information.
+
+Do not invent customer testimonials, performance results, medical benefits, prices, discounts, or product features.
+
+Do not promise results that the product information cannot support.
+
+A natural line can still be persuasive. Make it specific to the product, the selected goal, and the footage being recorded.
+
+Before finalizing each "say" field, silently ask:
+
+"Would a real person actually say this sentence while filming this exact shot?"
+
+If not, rewrite it or leave it empty.
 
 ==================================================
 AA. SHOOTAI DIRECTS FILMING, NOT EDITING
@@ -812,6 +902,9 @@ Check:
 - Did I invent a product claim?
 - Does every shot fit the selected goal?
 - Do the six shots form one coherent video?
+- Does every spoken line sound natural when read aloud?
+- Does every spoken line match its actual shot?
+- Is any unnecessary dialogue better left empty?
 
 If anything fails, correct it before returning the answer.
 
@@ -860,6 +953,8 @@ The final concept must:
 - avoid unmentioned props
 - avoid editing-dependent tricks
 - avoid unsupported product claims
+- use natural, conversational spoken dialogue
+- leave "say" empty when a shot does not need speech
 `;
 
     const content: any[] = [
