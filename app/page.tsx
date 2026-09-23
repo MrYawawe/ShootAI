@@ -847,7 +847,6 @@ export default function Home() {
     | 'home'
     | 'dashboard'
     | 'create'
-    | 'ideas'
     | 'director'
     | 'done'
   >('home');
@@ -860,13 +859,8 @@ export default function Home() {
   const [image, setImage] =
     useState<string>();
 
-  const [concepts, setConcepts] =
-    useState<Concept[]>([]);
-
-  const [
-    selectedConcept,
-    setSelectedConcept
-  ] = useState(0);
+  const [concept, setConcept] =
+    useState<Concept | null>(null);
 
   const [shot, setShot] = useState(0);
 
@@ -929,18 +923,17 @@ export default function Home() {
       }
 
       if (
-        !data.concepts ||
-        !Array.isArray(data.concepts)
+        !data.concept ||
+        !Array.isArray(data.concept.shots)
       ) {
         throw new Error(
           'ShootAI received an invalid response.'
         );
       }
 
-      setConcepts(data.concepts);
-      setSelectedConcept(0);
+      setConcept(data.concept);
       setShot(0);
-      setView('ideas');
+      setView('director');
     } catch (err) {
       setError(
         err instanceof Error
@@ -1060,11 +1053,11 @@ export default function Home() {
 
             <article>
               <i>02</i>
-              <h3>Pick a concept</h3>
+              <h3>AI plans your video</h3>
               <span>
-                ShootAI gives you simple
-                short-form content
-                directions.
+                ShootAI studies your product
+                and creates the filming plan
+                for you.
               </span>
             </article>
 
@@ -1259,100 +1252,15 @@ export default function Home() {
             disabled={loading}
           >
             {loading
-              ? 'ShootAI is creating your concepts...'
-              : 'Generate filming ideas ✦'}
+              ? 'ShootAI is planning your video...'
+              : 'Generate filming plan ✦'}
           </button>
-        </section>
-      </main>
-    );
-  }
-
-  if (view === 'ideas') {
-    return (
-      <main>
-        {nav}
-
-        <section className="page narrow">
-          <button
-            className="back"
-            onClick={() =>
-              setView('create')
-            }
-          >
-            ← Product details
-          </button>
-
-          <div className="badge">
-            {concepts.length} CONCEPTS
-          </div>
-
-          <h2>
-            Choose a direction.
-          </h2>
-
-          <p>
-            Pick the concept you’d
-            actually enjoy filming.
-          </p>
-
-          <div className="cards">
-            {concepts.map(
-              (concept, i) => (
-                <article
-                  className={
-                    i === 0
-                      ? 'idea best'
-                      : 'idea'
-                  }
-                  key={`${concept.title}-${i}`}
-                >
-                  {i === 0 && (
-                    <em>AI PICK</em>
-                  )}
-
-                  <small>
-                    {concept.shots
-                      ?.length || 0}{' '}
-                    SHOTS · EASY TO FILM
-                  </small>
-
-                  <h3>
-                    “{concept.hook}”
-                  </h3>
-
-                  <p>
-                    {concept.description}
-                  </p>
-
-                  <div className="sequence">
-                    {concept.title}
-                  </div>
-
-                  <button
-                    className="outline"
-                    onClick={() => {
-                      setSelectedConcept(i);
-                      setShot(0);
-                      setView(
-                        'director'
-                      );
-                    }}
-                  >
-                    Use this concept →
-                  </button>
-                </article>
-              )
-            )}
-          </div>
         </section>
       </main>
     );
   }
 
   if (view === 'director') {
-    const concept =
-      concepts[selectedConcept];
-
     const shots =
       concept?.shots || [];
 
@@ -1371,10 +1279,10 @@ export default function Home() {
             <button
               className="cta"
               onClick={() =>
-                setView('ideas')
+                setView('create')
               }
             >
-              Back to concepts
+              Back to product details
             </button>
           </section>
         </main>
@@ -1389,10 +1297,10 @@ export default function Home() {
           <button
             className="back"
             onClick={() =>
-              setView('ideas')
+              setView('create')
             }
           >
-            ← Concepts
+            ← Product details
           </button>
 
           <div className="progress">
@@ -1529,9 +1437,7 @@ export default function Home() {
         </p>
 
         <div className="donegrid">
-          {(concepts[selectedConcept]
-            ?.shots || []
-          ).map((s, i) => (
+          {(concept?.shots || []).map((s, i) => (
             <div
               key={`${s.title}-${i}`}
             >
@@ -1546,7 +1452,7 @@ export default function Home() {
             setName('');
             setPoint('');
             setImage(undefined);
-            setConcepts([]);
+            setConcept(null);
             setShot(0);
             setError('');
             setView('create');
