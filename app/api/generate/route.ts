@@ -8,6 +8,7 @@ type RequestBody = {
   sellingPoint?: string;
   goal?: string;
   image?: string;
+  images?: string[];
 };
 
 function extractOutputText(data: any): string {
@@ -47,7 +48,33 @@ export async function POST(request: Request) {
     const name = body.name?.trim();
     const sellingPoint = body.sellingPoint?.trim() || '';
     const goal = body.goal?.trim() || 'Product Showcase';
-    const image = body.image;
+
+    // Support the new 1–4 photo uploader while keeping compatibility
+    // with older requests that only send `image`.
+    const images = Array.isArray(body.images)
+      ? body.images
+          .filter(
+            (item): item is string =>
+              typeof item === 'string' &&
+              item.startsWith('data:image/')
+          )
+          .slice(0, 4)
+      : [];
+
+    if (
+      images.length === 0 &&
+      typeof body.image === 'string' &&
+      body.image.startsWith('data:image/')
+    ) {
+      images.push(body.image);
+    }
+
+    if (images.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one product photo is required.' },
+        { status: 400 }
+      );
+    }
 
     if (!name) {
       return NextResponse.json(
@@ -110,7 +137,26 @@ Only output the final video concept and filming plan.
 B. DEEP PRODUCT ANALYSIS
 ==================================================
 
-Before thinking about video ideas, silently study the uploaded image and user information.
+Before thinking about video ideas, silently study ALL uploaded product images together and the user information.
+
+Treat the uploaded images as multiple views of the SAME physical product.
+
+The first uploaded image is the MAIN PHOTO. Use it as the primary visual reference.
+
+Use the additional images to improve your understanding of details that may not be visible in the main photo, such as:
+- other sides of the packaging
+- labels and text
+- caps, lids, pumps, nozzles or openings
+- product shape and construction
+- included components
+- texture or physical form
+- how the product can realistically be handled or demonstrated
+
+Combine confirmed information across the uploaded images into one product profile.
+
+If two images appear inconsistent, do not invent an explanation. Prefer details that are clearly visible and avoid uncertain claims.
+
+Do not treat separate views of the same product as multiple products.
 
 Analyze as much of the following as can reasonably be determined:
 
@@ -192,7 +238,7 @@ Likewise:
 
 "Strawberry Lip Balm" does not mean the user has strawberries.
 
-The uploaded image and user-provided information are the source of truth for the actual physical product.
+The uploaded images and user-provided information are the source of truth for the actual physical product.
 
 ==================================================
 D. AVAILABLE OBJECTS RULE
@@ -200,7 +246,7 @@ D. AVAILABLE OBJECTS RULE
 
 Assume the user only has:
 
-1. The actual uploaded product.
+1. The actual uploaded product shown across the uploaded photos.
 2. Packaging or components clearly belonging to that product.
 3. The creator themselves when appropriate.
 4. Their phone.
@@ -933,10 +979,15 @@ ${sellingPoint || 'Not provided'}
 SELECTED VIDEO GOAL:
 ${goal}
 
-The uploaded image shows the actual physical product the user has.
+The uploaded photos show the actual physical product the user has.
+
+Treat every uploaded photo as another view of the SAME product.
+Photo 1 is the MAIN PHOTO.
+Use photos 2–4, when provided, to understand additional visible details.
+Analyze all provided photos together before creating the filming plan.
 
 FIRST:
-Study and understand the product deeply.
+Study and understand the product deeply using all uploaded photos.
 
 THEN:
 Use that product understanding and the selected goal to create ONE complete video concept.
@@ -964,13 +1015,18 @@ The final concept must:
       }
     ];
 
-    if (
-      image &&
-      image.startsWith('data:image/')
-    ) {
+    for (let index = 0; index < images.length; index++) {
+      content.push({
+        type: 'input_text',
+        text:
+          index === 0
+            ? 'MAIN PRODUCT PHOTO:'
+            : `ADDITIONAL PRODUCT PHOTO ${index + 1}:`
+      });
+
       content.push({
         type: 'input_image',
-        image_url: image
+        image_url: images[index]
       });
     }
 
