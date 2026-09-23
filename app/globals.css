@@ -258,10 +258,10 @@ h2 {
 }
 
 .upload {
-  height: 300px;
-  border: 1px dashed #414852;
-  background: #13161a;
-  border-radius: 18px;
+  height: 220px;
+  border: 1px dashed #343a42;
+  background: #111418;
+  border-radius: 16px;
   margin: 25px 0;
   display: flex;
   flex-direction: column;
@@ -270,12 +270,15 @@ h2 {
   overflow: hidden;
   position: relative;
   cursor: pointer;
-  transition: border-color .2s ease, background .2s ease;
+  padding: 16px;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .upload:hover {
-  border-color: #68717c;
-  background: #15191d;
+  border-color: #59616b;
+  background: #14171b;
 }
 
 .upload input {
@@ -283,35 +286,29 @@ h2 {
 }
 
 .upload img {
-  width: calc(100% - 32px);
-  height: calc(100% - 32px);
-  max-width: 420px;
+  width: auto;
+  height: 100%;
+  max-width: 100%;
   object-fit: contain;
-  background: #0c0f12;
-  border: 1px solid #282e35;
-  border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 18px 45px rgba(0,0,0,.32), 0 0 0 1px rgba(255,255,255,.015);
+  border-radius: 8px;
 }
 
 .upload strong {
-  width: 52px;
-  height: 52px;
-  display: grid;
-  place-items: center;
-  border-radius: 14px;
-  background: rgba(234,255,71,.07);
-  border: 1px solid rgba(234,255,71,.2);
+  font-size: 30px;
   color: #eaff47;
-  font-size: 28px;
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.upload b {
+  font-size: 13px;
+  color: #f5f7f8;
 }
 
 .upload span {
-  font-size: 12px;
-  color: #7d858f;
-  margin-top: 9px;
+  font-size: 11px;
+  color: #747c86;
+  margin-top: 7px;
 }
 
 label {
