@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -35,33 +36,20 @@ type ActionVisual =
 type Shot = {
   title: string;
   duration: string;
-
   recordFrom:
     | 'front'
     | 'top'
     | 'side'
     | 'above_side'
     | 'below';
-
   phoneSetup: 'hold' | 'fixed';
-
-  productSetup:
-    | 'hold'
-    | 'table'
-    | 'surface';
-
+  productSetup: 'hold' | 'table' | 'surface';
   setupInstruction: string;
   aimInstruction: string;
-
   actionType: ActionType;
   actionName: string;
   actionVisual: ActionVisual;
-
-  movingObject:
-    | 'phone'
-    | 'product'
-    | 'none';
-
+  movingObject: 'phone' | 'product' | 'none';
   movement:
     | 'none'
     | 'closer'
@@ -71,11 +59,7 @@ type Shot = {
     | 'up'
     | 'down'
     | 'around';
-
-  movementSpeed:
-    | 'slow'
-    | 'normal';
-
+  movementSpeed: 'slow' | 'normal';
   actionInstruction: string;
   recordInstruction: string;
   say: string;
@@ -101,22 +85,18 @@ const directionInfo = {
     title: 'RECORD FROM THE FRONT',
     short: 'FRONT'
   },
-
   top: {
     title: 'RECORD FROM THE TOP',
     short: 'TOP'
   },
-
   side: {
     title: 'RECORD FROM THE SIDE',
     short: 'SIDE'
   },
-
   above_side: {
     title: 'RECORD FROM ABOVE + SIDE',
     short: 'ABOVE + SIDE'
   },
-
   below: {
     title: 'RECORD FROM BELOW',
     short: 'BELOW'
@@ -187,7 +167,6 @@ function SetupGuide({ shot }: { shot: Shot }) {
         <div className="setup-choices">
           <div>
             <span>PHONE</span>
-
             <strong>
               {shot.phoneSetup === 'hold'
                 ? 'HOLD IT'
@@ -212,8 +191,7 @@ function CameraMovementVisual({
 }: {
   shot: Shot;
 }) {
-  const movementClass =
-    `move-${shot.movement}`;
+  const movementClass = `move-${shot.movement}`;
 
   return (
     <div
@@ -245,8 +223,7 @@ function ProductMovementVisual({
 }: {
   shot: Shot;
 }) {
-  const movementClass =
-    `move-${shot.movement}`;
+  const movementClass = `move-${shot.movement}`;
 
   return (
     <div
@@ -725,64 +702,239 @@ type TeachingMode =
   | 'product_move'
   | 'still';
 
-function getTeachingMode(shot: Shot, goal: string): TeachingMode {
-  const words = [shot.title, shot.actionName, shot.actionInstruction, shot.setupInstruction, shot.aimInstruction, shot.recordInstruction].join(' ').toLowerCase();
+function getTeachingMode(
+  shot: Shot,
+  goal: string
+): TeachingMode {
+  const words = [
+    shot.title,
+    shot.actionName,
+    shot.actionInstruction,
+    shot.setupInstruction,
+    shot.aimInstruction,
+    shot.recordInstruction
+  ]
+    .join(' ')
+    .toLowerCase();
 
-  if (goal === 'UGC Style' && (words.includes('talk to camera') || words.includes('speak to camera') || words.includes('look into the camera') || words.includes('look at the camera') || words.includes('your face') || words.includes('face and'))) return 'talking';
-  if (words.includes('pov') || words.includes('point of view') || words.includes('your view')) return 'pov';
-  if (goal === 'Problem → Solution' && (words.includes('problem') || words.includes('before'))) return 'problem';
-  if (goal === 'UGC Style' && (words.includes('use the product') || words.includes('demonstrate') || words.includes('try it') || words.includes('show how') || words.includes('using the product'))) return 'demonstration';
-  if (shot.actionType === 'camera_move') return 'camera_move';
-  if (shot.actionType === 'product_move') return 'product_move';
-  if (shot.actionType === 'product_action') return 'product_action';
+  if (
+    goal === 'UGC Style' &&
+    (
+      words.includes('talk to camera') ||
+      words.includes('speak to camera') ||
+      words.includes('look into the camera') ||
+      words.includes('look at the camera') ||
+      words.includes('your face') ||
+      words.includes('face and')
+    )
+  ) {
+    return 'talking';
+  }
+
+  if (
+    words.includes('pov') ||
+    words.includes('point of view') ||
+    words.includes('your view')
+  ) {
+    return 'pov';
+  }
+
+  if (
+    goal === 'Problem → Solution' &&
+    (
+      words.includes('problem') ||
+      words.includes('before')
+    )
+  ) {
+    return 'problem';
+  }
+
+  if (
+    goal === 'UGC Style' &&
+    (
+      words.includes('use the product') ||
+      words.includes('demonstrate') ||
+      words.includes('try it') ||
+      words.includes('show how') ||
+      words.includes('using the product')
+    )
+  ) {
+    return 'demonstration';
+  }
+
+  if (shot.actionType === 'camera_move') {
+    return 'camera_move';
+  }
+
+  if (shot.actionType === 'product_move') {
+    return 'product_move';
+  }
+
+  if (shot.actionType === 'product_action') {
+    return 'product_action';
+  }
+
   return 'still';
 }
 
-function AdaptiveTeachingVisual({ shot, goal }: { shot: Shot; goal: string }) {
+function AdaptiveTeachingVisual({
+  shot,
+  goal
+}: {
+  shot: Shot;
+  goal: string;
+}) {
   const mode = getTeachingMode(shot, goal);
 
-  if (mode === 'talking') return (
-    <div className="teaching-stage talking-stage">
-      <div className="teaching-label">HOW TO FILM THIS</div>
-      <div className="talking-layout">
-        <div className="teaching-phone">PHONE</div><div className="teaching-arrow">→</div>
-        <div className="creator-frame"><div className="creator-head" /><div className="creator-body">YOU</div><div className="creator-product">PRODUCT</div></div>
+  if (mode === 'talking') {
+    return (
+      <div className="teaching-stage talking-stage">
+        <div className="teaching-label">
+          HOW TO FILM THIS
+        </div>
+
+        <div className="talking-layout">
+          <div className="teaching-phone">
+            PHONE
+          </div>
+
+          <div className="teaching-arrow">
+            →
+          </div>
+
+          <div className="creator-frame">
+            <div className="creator-head" />
+            <div className="creator-body">
+              YOU
+            </div>
+            <div className="creator-product">
+              PRODUCT
+            </div>
+          </div>
+        </div>
+
+        <div className="teaching-caption">
+          LOOK AT THE CAMERA
+        </div>
+
+        <div className="teaching-tip">
+          Keep yourself and the product visible
+          while you speak.
+        </div>
       </div>
-      <div className="teaching-caption">LOOK AT THE CAMERA</div>
-      <div className="teaching-tip">Keep yourself and the product visible while you speak.</div>
-    </div>
-  );
+    );
+  }
 
-  if (mode === 'pov') return (
-    <div className="teaching-stage pov-stage">
-      <div className="teaching-label">POV SETUP</div>
-      <div className="pov-layout"><div className="pov-phone">PHONE<span>↓</span></div><div className="pov-view"><strong>WHAT VIEWERS SEE</strong><div>PRODUCT</div></div></div>
-      <div className="teaching-caption">FILM FROM YOUR VIEW</div>
-      <div className="teaching-tip">{shot.aimInstruction}</div>
-    </div>
-  );
+  if (mode === 'pov') {
+    return (
+      <div className="teaching-stage pov-stage">
+        <div className="teaching-label">
+          POV SETUP
+        </div>
 
-  if (mode === 'problem') return (
-    <div className="teaching-stage problem-stage">
-      <div className="teaching-label">SHOW THE PROBLEM CLEARLY</div>
-      <div className="problem-layout"><div className="problem-box">PROBLEM</div><div className="teaching-arrow">→</div><div className="solution-box">PRODUCT</div></div>
-      <div className="teaching-caption">PROBLEM FIRST</div>
-      <div className="teaching-tip">Record the problem clearly before revealing the solution.</div>
-    </div>
-  );
+        <div className="pov-layout">
+          <div className="pov-phone">
+            PHONE
+            <span>↓</span>
+          </div>
 
-  if (mode === 'demonstration') return (
-    <div className="teaching-stage demo-stage">
-      <div className="teaching-label">DEMONSTRATE IT</div>
-      <div className="demo-layout"><div className="demo-product">PRODUCT</div><div className="teaching-arrow">→</div><div className="demo-action">USE IT</div></div>
-      <div className="teaching-caption">{shot.actionName}</div>
-      <div className="teaching-tip">{shot.actionInstruction}</div>
-    </div>
-  );
+          <div className="pov-view">
+            <strong>WHAT VIEWERS SEE</strong>
+            <div>PRODUCT</div>
+          </div>
+        </div>
 
-  if (mode === 'camera_move') return <CameraMovementVisual shot={shot} />;
-  if (mode === 'product_move') return <ProductMovementVisual shot={shot} />;
-  if (mode === 'product_action') return <ProductActionVisual shot={shot} />;
+        <div className="teaching-caption">
+          FILM FROM YOUR VIEW
+        </div>
+
+        <div className="teaching-tip">
+          {shot.aimInstruction}
+        </div>
+      </div>
+    );
+  }
+
+  // Problem-only shot: show the creator, not the product.
+  if (mode === 'problem') {
+    return (
+      <div className="teaching-stage talking-stage">
+        <div className="teaching-label">
+          SHOW THE PROBLEM
+        </div>
+
+        <div className="talking-layout">
+          <div className="teaching-phone">
+            PHONE
+          </div>
+
+          <div className="teaching-arrow">
+            →
+          </div>
+
+          <div className="creator-frame">
+            <div className="creator-head" />
+            <div className="creator-body">
+              YOU
+            </div>
+          </div>
+        </div>
+
+        <div className="teaching-caption">
+          EXPLAIN THE PROBLEM
+        </div>
+
+        <div className="teaching-tip">
+          {shot.actionInstruction}
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'demonstration') {
+    return (
+      <div className="teaching-stage demo-stage">
+        <div className="teaching-label">
+          DEMONSTRATE IT
+        </div>
+
+        <div className="demo-layout">
+          <div className="demo-product">
+            PRODUCT
+          </div>
+
+          <div className="teaching-arrow">
+            →
+          </div>
+
+          <div className="demo-action">
+            USE IT
+          </div>
+        </div>
+
+        <div className="teaching-caption">
+          {shot.actionName}
+        </div>
+
+        <div className="teaching-tip">
+          {shot.actionInstruction}
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'camera_move') {
+    return <CameraMovementVisual shot={shot} />;
+  }
+
+  if (mode === 'product_move') {
+    return <ProductMovementVisual shot={shot} />;
+  }
+
+  if (mode === 'product_action') {
+    return <ProductActionVisual shot={shot} />;
+  }
+
   return <StillVisual />;
 }
 
@@ -802,7 +954,9 @@ function MovementGuide({
       shot.actionType === 'product_move'
     ) {
       title = 'MOVE THE PRODUCT';
-    } else if (shot.actionType === 'still') {
+    } else if (
+      shot.actionType === 'still'
+    ) {
       title = 'KEEP STILL';
     } else {
       title = 'DO THIS';
@@ -1355,7 +1509,10 @@ export default function Home() {
 
           <SetupGuide shot={s} />
 
-          <MovementGuide shot={s} goal={goal} />
+          <MovementGuide
+            shot={s}
+            goal={goal}
+          />
 
           <div className="record-card">
             <div className="step-number">
@@ -1437,13 +1594,15 @@ export default function Home() {
         </p>
 
         <div className="donegrid">
-          {(concept?.shots || []).map((s, i) => (
-            <div
-              key={`${s.title}-${i}`}
-            >
-              ✓ <span>{s.title}</span>
-            </div>
-          ))}
+          {(concept?.shots || []).map(
+            (s, i) => (
+              <div
+                key={`${s.title}-${i}`}
+              >
+                ✓ <span>{s.title}</span>
+              </div>
+            )
+          )}
         </div>
 
         <button
