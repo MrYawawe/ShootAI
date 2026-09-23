@@ -715,10 +715,83 @@ function StillVisual() {
   );
 }
 
+type TeachingMode =
+  | 'talking'
+  | 'pov'
+  | 'problem'
+  | 'demonstration'
+  | 'product_action'
+  | 'camera_move'
+  | 'product_move'
+  | 'still';
+
+function getTeachingMode(shot: Shot, goal: string): TeachingMode {
+  const words = [shot.title, shot.actionName, shot.actionInstruction, shot.setupInstruction, shot.aimInstruction, shot.recordInstruction].join(' ').toLowerCase();
+
+  if (goal === 'UGC Style' && (words.includes('talk to camera') || words.includes('speak to camera') || words.includes('look into the camera') || words.includes('look at the camera') || words.includes('your face') || words.includes('face and'))) return 'talking';
+  if (words.includes('pov') || words.includes('point of view') || words.includes('your view')) return 'pov';
+  if (goal === 'Problem → Solution' && (words.includes('problem') || words.includes('before'))) return 'problem';
+  if (goal === 'UGC Style' && (words.includes('use the product') || words.includes('demonstrate') || words.includes('try it') || words.includes('show how') || words.includes('using the product'))) return 'demonstration';
+  if (shot.actionType === 'camera_move') return 'camera_move';
+  if (shot.actionType === 'product_move') return 'product_move';
+  if (shot.actionType === 'product_action') return 'product_action';
+  return 'still';
+}
+
+function AdaptiveTeachingVisual({ shot, goal }: { shot: Shot; goal: string }) {
+  const mode = getTeachingMode(shot, goal);
+
+  if (mode === 'talking') return (
+    <div className="teaching-stage talking-stage">
+      <div className="teaching-label">HOW TO FILM THIS</div>
+      <div className="talking-layout">
+        <div className="teaching-phone">PHONE</div><div className="teaching-arrow">→</div>
+        <div className="creator-frame"><div className="creator-head" /><div className="creator-body">YOU</div><div className="creator-product">PRODUCT</div></div>
+      </div>
+      <div className="teaching-caption">LOOK AT THE CAMERA</div>
+      <div className="teaching-tip">Keep yourself and the product visible while you speak.</div>
+    </div>
+  );
+
+  if (mode === 'pov') return (
+    <div className="teaching-stage pov-stage">
+      <div className="teaching-label">POV SETUP</div>
+      <div className="pov-layout"><div className="pov-phone">PHONE<span>↓</span></div><div className="pov-view"><strong>WHAT VIEWERS SEE</strong><div>PRODUCT</div></div></div>
+      <div className="teaching-caption">FILM FROM YOUR VIEW</div>
+      <div className="teaching-tip">{shot.aimInstruction}</div>
+    </div>
+  );
+
+  if (mode === 'problem') return (
+    <div className="teaching-stage problem-stage">
+      <div className="teaching-label">SHOW THE PROBLEM CLEARLY</div>
+      <div className="problem-layout"><div className="problem-box">PROBLEM</div><div className="teaching-arrow">→</div><div className="solution-box">PRODUCT</div></div>
+      <div className="teaching-caption">PROBLEM FIRST</div>
+      <div className="teaching-tip">Record the problem clearly before revealing the solution.</div>
+    </div>
+  );
+
+  if (mode === 'demonstration') return (
+    <div className="teaching-stage demo-stage">
+      <div className="teaching-label">DEMONSTRATE IT</div>
+      <div className="demo-layout"><div className="demo-product">PRODUCT</div><div className="teaching-arrow">→</div><div className="demo-action">USE IT</div></div>
+      <div className="teaching-caption">{shot.actionName}</div>
+      <div className="teaching-tip">{shot.actionInstruction}</div>
+    </div>
+  );
+
+  if (mode === 'camera_move') return <CameraMovementVisual shot={shot} />;
+  if (mode === 'product_move') return <ProductMovementVisual shot={shot} />;
+  if (mode === 'product_action') return <ProductActionVisual shot={shot} />;
+  return <StillVisual />;
+}
+
 function MovementGuide({
-  shot
+  shot,
+  goal
 }: {
   shot: Shot;
+  goal: string;
 }) {
   let title = shot.actionName;
 
@@ -745,24 +818,10 @@ function MovementGuide({
 
         <h3>{title}</h3>
 
-        {shot.actionType ===
-          'camera_move' && (
-          <CameraMovementVisual shot={shot} />
-        )}
-
-        {shot.actionType ===
-          'product_move' && (
-          <ProductMovementVisual shot={shot} />
-        )}
-
-        {shot.actionType ===
-          'product_action' && (
-          <ProductActionVisual shot={shot} />
-        )}
-
-        {shot.actionType === 'still' && (
-          <StillVisual />
-        )}
+        <AdaptiveTeachingVisual
+          shot={shot}
+          goal={goal}
+        />
 
         <div className="action-instruction-box">
           <span>DO THIS</span>
@@ -1388,7 +1447,7 @@ export default function Home() {
 
           <SetupGuide shot={s} />
 
-          <MovementGuide shot={s} />
+          <MovementGuide shot={s} goal={goal} />
 
           <div className="record-card">
             <div className="step-number">
