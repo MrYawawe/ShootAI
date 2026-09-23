@@ -2563,3 +2563,29 @@ textarea {
   }
 }
 
+
+
+/* STEP 1: KEEP CAMERA DIRECTION DIAGRAM VISIBLE AT ALL TIMES */
+.direction-stage .direction-phone,
+.direction-stage .direction-product {
+  visibility: visible !important;
+  opacity: 1 !important;
+  animation: none !important;
+  transition: none !important;
+  backface-visibility: visible;
+  will-change: auto;
+}
+
+.direction-stage .camera-path,
+.direction-stage .path-line,
+.direction-stage .path-arrow {
+  visibility: visible !important;
+  opacity: 1 !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* The arrow shows the camera's viewing direction, not phone movement. */
+.direction-stage .camera-path {
+  pointer-events: none;
+}
