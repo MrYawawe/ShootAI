@@ -7,6 +7,7 @@ type RequestBody = {
   name?: string;
   sellingPoint?: string;
   goal?: string;
+  personInVideo?: 'with_person' | 'without_person';
   image?: string;
   images?: string[];
 };
@@ -379,7 +380,49 @@ and communicate a supported benefit.
 Never fake before-and-after results.
 
 ==================================================
-7. CREATE ONE COHERENT CONCEPT
+7. PERSON IN VIDEO — HARD CONSTRAINT
+==================================================
+
+The user chooses whether a visible person is allowed in the video.
+This is a HARD filming constraint across ALL SIX shots, not a suggestion
+and not a video goal.
+
+PERSON SETTING: The user's selection is provided in the request.
+
+If PERSON SETTING is WITHOUT PERSON:
+- NO visible face, head, torso, full body, partial body, reflection,
+  silhouette, or person may appear in ANY of the six shots.
+- Never instruct the creator to look at the camera, smile, react, stand,
+  sit, walk into frame, speak on camera, show their face, or position
+  their body in frame.
+- Never create a creator-facing or talking-head shot.
+- Hands ARE allowed only when they are genuinely useful for holding,
+  opening, using, placing, rotating, or demonstrating the real product.
+- POV/hands-only filming is allowed when it makes practical sense.
+- Spoken words, when useful, must be OFF-CAMERA voice-over. The visual
+  instructions must remain product-only or hands/POV-only.
+- Do not force hands into every shot. Use clean product-only footage when
+  hands add no value.
+- For Problem → Solution, communicate the problem using real product/object
+  visuals when available, or off-camera voice-over over a relevant
+  product/environment shot. Never solve the restriction by adding a person.
+- For UGC Style, use believable hands/POV/off-camera UGC rather than a
+  visible creator.
+- If any planned shot requires a visible person, REWRITE THE SHOT before
+  returning the JSON.
+
+If PERSON SETTING is WITH PERSON:
+- A visible creator is allowed when it improves the concept.
+- Do NOT force a person into every shot.
+- Product-only, close-up, POV and hands-only shots are still allowed.
+- Use a visible person only when it makes the selected video goal clearer
+  or more natural.
+
+The selected setting must be obeyed consistently from Shot 1 through Shot 6.
+A person must never suddenly appear in a WITHOUT PERSON plan.
+
+==================================================
+8. CREATE ONE COHERENT CONCEPT
 ==================================================
 
 Create exactly ONE concept.
@@ -397,7 +440,7 @@ Make the concept specific to the uploaded product,
 not a generic video with the product name inserted.
 
 ==================================================
-8. BEGINNER-FRIENDLY FILMING DIRECTIONS
+9. BEGINNER-FRIENDLY FILMING DIRECTIONS
 ==================================================
 
 Assume the creator has never filmed a product video before.
@@ -425,7 +468,7 @@ Explain where the light should come from when relevant.
 Do not require professional equipment.
 
 ==================================================
-9. OUTPUT FIELD RULES
+10. OUTPUT FIELD RULES
 ==================================================
 
 recordFrom:
@@ -490,7 +533,7 @@ movementSpeed:
 Only add movement when it helps the shot.
 
 ==================================================
-10. NATURAL SPOKEN DIALOGUE
+11. NATURAL SPOKEN DIALOGUE
 ==================================================
 
 The say field is the exact sentence a person would speak.
@@ -546,7 +589,7 @@ For example:
 Do not copy examples mechanically.
 
 ==================================================
-11. FILMING ONLY — NO EDITING TRICKS
+12. FILMING ONLY — NO EDITING TRICKS
 ==================================================
 
 Every shot must work as real recorded footage.
@@ -566,7 +609,7 @@ Do not require:
 Do not explain editing.
 
 ==================================================
-12. FINAL CONSISTENCY CHECK
+13. FINAL CONSISTENCY CHECK
 ==================================================
 
 Before returning the plan, silently check EVERY shot.
@@ -620,6 +663,8 @@ export async function POST(request: Request) {
     const name = body.name?.trim();
     const sellingPoint = body.sellingPoint?.trim() || '';
     const goal = body.goal?.trim() || 'Product Showcase';
+    const personInVideo =
+      body.personInVideo === 'without_person' ? 'without_person' : 'with_person';
 
     if (!name) {
       return NextResponse.json(
@@ -678,6 +723,9 @@ ${sellingPoint || 'Not provided'}
 SELECTED VIDEO GOAL:
 ${goal}
 
+PERSON IN VIDEO:
+${personInVideo === 'without_person' ? 'WITHOUT PERSON' : 'WITH PERSON'}
+
 The uploaded photos show the actual physical product.
 
 All photos show the SAME product from different views.
@@ -688,6 +736,10 @@ Analyze every uploaded photo together before deciding
 what the product is and how it can realistically be filmed.
 
 Create ONE concept containing exactly SIX shots.
+
+The PERSON IN VIDEO setting is a hard constraint for all six shots.
+If it is WITHOUT PERSON, no visible person may appear at any point; use product-only or hands/POV shots, and make any speech off-camera voice-over.
+If it is WITH PERSON, a visible creator is allowed but should only be used when it improves the shot.
 
 Every action must be physically possible.
 
