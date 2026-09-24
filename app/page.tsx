@@ -40,7 +40,6 @@ type Concept = {
 
 const goals = [
   'Viral / Attention',
-  'Sell My Product',
   'UGC Style',
   'Product Showcase',
   'Problem → Solution'
@@ -597,6 +596,7 @@ export default function Home() {
   const [name, setName] = useState('');
   const [point, setPoint] = useState('');
   const [goal, setGoal] = useState(goals[0]);
+  const [personInVideo, setPersonInVideo] = useState<'with' | 'without'>('with');
 
   const [images, setImages] = useState<string[]>([]);
 
@@ -669,6 +669,7 @@ export default function Home() {
           name,
           sellingPoint: point,
           goal,
+          personInVideo,
           image: images[0],
           images
         })
@@ -1028,6 +1029,32 @@ export default function Home() {
                 </button>
               ))}
             </div>
+          </label>
+
+          <label>
+            Person in video
+
+            <div className="goalgrid">
+              <button
+                type="button"
+                className={personInVideo === 'with' ? 'selected' : ''}
+                onClick={() => setPersonInVideo('with')}
+              >
+                With Person
+              </button>
+
+              <button
+                type="button"
+                className={personInVideo === 'without' ? 'selected' : ''}
+                onClick={() => setPersonInVideo('without')}
+              >
+                Without Person
+              </button>
+            </div>
+
+            <span style={{ display: 'block', marginTop: 8, color: '#8f97a1', fontSize: 12 }}>
+              Without Person keeps faces and bodies off-camera. Hands/POV can still be used when needed.
+            </span>
           </label>
 
           {error && (
