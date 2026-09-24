@@ -518,6 +518,26 @@ Use an empty string when the visual does not need dialogue.
 
 Match the spoken line to what is actually being filmed.
 
+CRITICAL DIALOGUE-ACTION MATCHING RULE:
+For every shot where say is not an empty string, decide the exact say line FIRST.
+Then write actionInstruction specifically for the delivery of THAT exact line.
+
+The actionInstruction must not be a generic instruction such as:
+- "Explain the problem naturally."
+- "Talk about the problem."
+- "Speak to the camera."
+when the say field contains a more specific message.
+
+Instead, actionInstruction must tell the creator how to physically deliver the exact say line using only real, natural behavior. It may reference a meaningful word or idea from the say line when useful, but must never require miming an absent object.
+
+Example:
+say: "Ever had your earbuds slip out or go missing when you're out?"
+actionInstruction: "Look directly at the camera and ask the question with a mildly frustrated expression. Make one small natural hand gesture when you mention the earbuds, without pretending to hold or drop them."
+
+The DO THIS instruction and WHAT TO SAY line must feel like two parts of the SAME performance. If the say line were changed, the actionInstruction should normally need to change too.
+
+Do not invent first-person personal experience. Unless the user explicitly provided that experience, avoid lines such as "I always...", "I used to...", "I've been using...", "This fixed my...", or other testimonial-style claims. Prefer neutral questions, observations, or product-focused wording.
+
 For example:
 "Okay, let me show you what's inside."
 "Here's a closer look at it."
@@ -569,6 +589,10 @@ Ask:
 - Does the actionVisual accurately match the real action?
 - Is any product shown too early in a problem-only shot?
 - Does the dialogue sound natural?
+- If say is not empty, was the actionInstruction written specifically around that exact say line?
+- Would DO THIS still make sense if WHAT TO SAY were replaced with a different sentence? If yes, it is probably too generic and must be rewritten.
+- Do DO THIS and WHAT TO SAY describe one matching performance?
+- Did I invent any first-person personal experience or testimonial?
 - Are all claims supported?
 - Does the shot match the selected goal?
 - Do the six shots form one coherent video?
@@ -578,6 +602,8 @@ rewrite that shot as a real action or natural spoken explanation.
 
 If the instructions and visual data disagree,
 correct them before returning the result.
+
+If say is not empty and actionInstruction is generic or does not clearly match that exact spoken line, rewrite actionInstruction before returning the result.
 
 Return ONLY the structured JSON.
 
