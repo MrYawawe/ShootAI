@@ -1,1258 +1,913 @@
 
-'use client';
+import { NextResponse } from 'next/server';
 
-import { useState } from 'react';
+export const runtime = 'nodejs';
 
-type ActionType = 'camera_move' | 'product_move' | 'product_action' | 'still';
+type PersonSetting = 'with_person' | 'without_person';
 
-type ActionVisual =
-  | 'unwrap' | 'open' | 'close' | 'pour' | 'squeeze'
-  | 'press' | 'spray' | 'twist' | 'rotate' | 'flip'
-  | 'shake' | 'pull' | 'push' | 'slide' | 'lift'
-  | 'remove' | 'place' | 'pick_up' | 'tap'
-  | 'wipe' | 'apply' | 'generic';
+type RequestBody = {
+  name?: string;
+  sellingPoint?: string;
+  goal?: string;
+  personInVideo?: string;
+  image?: string;
+  images?: string[];
+};
 
 type Shot = {
   title: string;
   duration: string;
-  recordFrom: 'front' | 'top' | 'side' | 'above_side' | 'below';
-  phoneSetup: 'hold' | 'fixed';
-  productSetup: 'hold' | 'table' | 'surface';
+  recordFrom: string;
+  phoneSetup: string;
+  productSetup: string;
   setupInstruction: string;
   aimInstruction: string;
-  actionType: ActionType;
+  actionType: string;
   actionName: string;
-  actionVisual: ActionVisual;
-  movingObject: 'phone' | 'product' | 'none';
-  movement: 'none' | 'closer' | 'away' | 'left' | 'right' | 'up' | 'down' | 'around';
-  movementSpeed: 'slow' | 'normal';
+  actionVisual: string;
+  movingObject: string;
+  movement: string;
+  movementSpeed: string;
   actionInstruction: string;
   recordInstruction: string;
   say: string;
 };
 
-type Concept = {
-  title: string;
-  hook: string;
-  description: string;
-  shots: Shot[];
+type FilmingPlan = {
+  concept: {
+    title: string;
+    hook: string;
+    description: string;
+    shots: Shot[];
+  };
 };
 
-const goals = [
-  'Viral / Attention',
-  'UGC Style',
-  'Product Showcase',
-  'Problem → Solution'
-];
-
-const directionInfo = {
-  front: { title: 'RECORD FROM THE FRONT', short: 'FRONT' },
-  top: { title: 'RECORD FROM THE TOP', short: 'TOP' },
-  side: { title: 'RECORD FROM THE SIDE', short: 'SIDE' },
-  above_side: { title: 'RECORD FROM ABOVE + SIDE', short: 'ABOVE + SIDE' },
-  below: { title: 'RECORD FROM BELOW', short: 'BELOW' }
-};
-
-function DirectionDiagram({ shot }: { shot: Shot }) {
-  const direction = directionInfo[shot.recordFrom] || directionInfo.front;
-
-  return (
-    <div className={`new-director-diagram direction-${shot.recordFrom}`}>
-      <div className="diagram-question">WHERE DO I RECORD FROM?</div>
-      <h3>{direction.title}</h3>
-
-      <div className="direction-stage">
-        <div className="direction-phone">
-          <div className="direction-camera-dot" />
-          <span>PHONE</span>
-        </div>
-
-        <div className="camera-path">
-          <span className="path-line" />
-          <span className="path-arrow">›</span>
-        </div>
-
-        <div className="direction-product">
-          <span>PRODUCT</span>
-        </div>
-      </div>
-
-      <div className="direction-answer">
-        <span>YOUR CAMERA</span>
-        <strong>{direction.short}</strong>
-      </div>
-    </div>
-  );
-}
-
-function SetupGuide({ shot }: { shot: Shot }) {
-  const phoneText =
-    shot.phoneSetup === 'hold' ? 'HOLD YOUR PHONE' : 'KEEP PHONE FIXED';
-
-  const productText =
-    shot.productSetup === 'hold'
-      ? 'HOLD THE PRODUCT'
-      : shot.productSetup === 'table'
-      ? 'PUT PRODUCT ON TABLE'
-      : 'PUT PRODUCT ON A SURFACE';
-
-  return (
-    <div className="director-step-card">
-      <div className="step-number">2</div>
-      <div className="step-content">
-        <small>SET UP</small>
-        <h3>{phoneText}</h3>
-
-        <div className="setup-choices">
-          <div>
-            <span>PHONE</span>
-            <strong>
-              {shot.phoneSetup === 'hold' ? 'HOLD IT' : 'KEEP IT FIXED'}
-            </strong>
-          </div>
-          <div>
-            <span>PRODUCT</span>
-            <strong>{productText}</strong>
-          </div>
-        </div>
-
-        <p>{shot.setupInstruction}</p>
-      </div>
-    </div>
-  );
-}
-
-function CameraMovementVisual({ shot }: { shot: Shot }) {
-  const movementClass = `move-${shot.movement}`;
-
-  return (
-    <div className={`movement-stage movement-${shot.movement}`}>
-      <div className={`mini-phone moving-object ${movementClass}`}>
-        <div className="mini-camera-dot" />
-        <span>PHONE</span>
-      </div>
-
-      <div className="movement-dots">
-        <i /><i /><i /><b>›</b>
-      </div>
-
-      <div className="mini-product">PRODUCT</div>
-    </div>
-  );
-}
-
-function ProductMovementVisual({ shot }: { shot: Shot }) {
-  const movementClass = `move-${shot.movement}`;
-
-  return (
-    <div className={`movement-stage movement-${shot.movement}`}>
-      <div className="mini-phone">
-        <div className="mini-camera-dot" />
-        <span>PHONE</span>
-      </div>
-
-      <div className="movement-dots">
-        <i /><i /><i /><b>›</b>
-      </div>
-
-      <div className={`mini-product moving-object ${movementClass}`}>
-        PRODUCT
-      </div>
-    </div>
-  );
-}
-
-function ProductActionVisual({ shot }: { shot: Shot }) {
-  const action = shot.actionVisual;
-
-  if (action === 'unwrap') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="unwrap-demo">
-          <div className="soap-core">SOAP</div>
-          <div className="soap-wrapper">WRAPPER</div>
-          <div className="action-arrow">→</div>
-        </div>
-        <div className="action-caption">SLIDE WRAPPER OFF</div>
-      </div>
-    );
-  }
-
-  if (action === 'open' || action === 'remove') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="open-demo">
-          <div className="action-bottle">
-            <div className="action-cap" />
-            <span>PRODUCT</span>
-          </div>
-          <div className="up-action-arrow">↑</div>
-        </div>
-        <div className="action-caption">
-          {action === 'open' ? 'OPEN IT' : 'REMOVE IT'}
-        </div>
-      </div>
-    );
-  }
-
-  if (action === 'twist') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="twist-demo">
-          <div className="twist-arrow">↻</div>
-          <div className="action-bottle">
-            <div className="action-cap" />
-            <span>PRODUCT</span>
-          </div>
-        </div>
-        <div className="action-caption">TWIST IT</div>
-      </div>
-    );
-  }
-
-  if (action === 'rotate') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="rotate-demo">
-          <div className="rotate-arrow">↻</div>
-          <div className="rotate-product">PRODUCT</div>
-        </div>
-        <div className="action-caption">TURN THE PRODUCT</div>
-      </div>
-    );
-  }
-
-  if (action === 'pour') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="pour-demo">
-          <div className="pour-product">PRODUCT</div>
-          <div className="pour-stream" />
-          <div className="pour-cup">CUP</div>
-        </div>
-        <div className="action-caption">POUR IT</div>
-      </div>
-    );
-  }
-
-  if (action === 'squeeze') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="squeeze-demo">
-          <span className="squeeze-left">→</span>
-          <div className="squeeze-product">PRODUCT</div>
-          <span className="squeeze-right">←</span>
-        </div>
-        <div className="action-caption">SQUEEZE IT</div>
-      </div>
-    );
-  }
-
-  if (action === 'press' || action === 'tap') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="press-demo">
-          <div className="press-arrow">↓</div>
-          <div className="press-product">PRODUCT</div>
-        </div>
-        <div className="action-caption">
-          {action === 'tap' ? 'TAP IT' : 'PRESS IT'}
-        </div>
-      </div>
-    );
-  }
-
-  if (action === 'lift' || action === 'pick_up') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="lift-demo">
-          <div className="lift-product">PRODUCT</div>
-          <div className="lift-arrow">↑</div>
-          <div className="surface-line" />
-        </div>
-        <div className="action-caption">LIFT IT UP</div>
-      </div>
-    );
-  }
-
-  if (action === 'place') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="place-demo">
-          <div className="place-product">PRODUCT</div>
-          <div className="place-arrow">↓</div>
-          <div className="surface-line" />
-        </div>
-        <div className="action-caption">PUT IT DOWN</div>
-      </div>
-    );
-  }
-
-  if (action === 'slide' || action === 'pull' || action === 'push') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="slide-demo">
-          <div className="slide-product">PRODUCT</div>
-          <div className="slide-arrow">→</div>
-        </div>
-        <div className="action-caption">
-          {action === 'pull'
-            ? 'PULL IT'
-            : action === 'push'
-            ? 'PUSH IT'
-            : 'SLIDE IT'}
-        </div>
-      </div>
-    );
-  }
-
-  if (action === 'shake') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="shake-demo">
-          <span>←</span>
-          <div className="shake-product">PRODUCT</div>
-          <span>→</span>
-        </div>
-        <div className="action-caption">SHAKE IT</div>
-      </div>
-    );
-  }
-
-  if (action === 'flip') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="flip-demo">
-          <div className="flip-arrow">↻</div>
-          <div className="flip-product">PRODUCT</div>
-        </div>
-        <div className="action-caption">FLIP IT</div>
-      </div>
-    );
-  }
-
-  if (action === 'spray') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="spray-demo">
-          <div className="spray-product">PRODUCT</div>
-          <div className="spray-cloud"><i /><i /><i /></div>
-        </div>
-        <div className="action-caption">SPRAY IT</div>
-      </div>
-    );
-  }
-
-  if (action === 'wipe' || action === 'apply') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE ACTION</div>
-        <div className="apply-demo">
-          <div className="apply-product">PRODUCT</div>
-          <div className="apply-arrow">→</div>
-          <div className="apply-target">AREA</div>
-        </div>
-        <div className="action-caption">
-          {action === 'wipe' ? 'WIPE ACROSS' : 'APPLY IT'}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="action-stage">
-      <div className="action-label">DO THIS</div>
-      <div className="generic-action">
-        <div className="generic-product">PRODUCT</div>
-        <div className="generic-arrow">→</div>
-      </div>
-      <div className="action-caption">{shot.actionName}</div>
-    </div>
-  );
-}
-
-function StillVisual() {
-  return (
-    <div className="action-stage">
-      <div className="action-label">WHILE RECORDING</div>
-      <div className="still-demo">
-        <div className="still-phone">PHONE</div>
-        <div className="still-lines">· · ·</div>
-        <div className="still-product">PRODUCT</div>
-      </div>
-      <div className="action-caption still-caption">
-        KEEP EVERYTHING STILL
-      </div>
-    </div>
-  );
-}
-
-type TeachingMode =
-  | 'talking'
-  | 'pov'
-  | 'problem'
-  | 'demonstration'
-  | 'product_action'
-  | 'camera_move'
-  | 'product_move'
-  | 'still';
-
-function getTeachingMode(shot: Shot, goal: string): TeachingMode {
-  const words = [
-    shot.title,
-    shot.actionName,
-    shot.actionInstruction,
-    shot.setupInstruction,
-    shot.aimInstruction,
-    shot.recordInstruction
-  ].join(' ').toLowerCase();
-
+function extractOutputText(data: any): string {
   if (
-    goal === 'UGC Style' &&
-    (
-      words.includes('talk to camera') ||
-      words.includes('speak to camera') ||
-      words.includes('look into the camera') ||
-      words.includes('look at the camera') ||
-      words.includes('your face') ||
-      words.includes('face and')
-    )
-  ) return 'talking';
-
-  if (
-    words.includes('pov') ||
-    words.includes('point of view') ||
-    words.includes('your view')
-  ) return 'pov';
-
-  if (
-    goal === 'Problem → Solution' &&
-    (words.includes('problem') || words.includes('before'))
-  ) return 'problem';
-
-  if (
-    goal === 'UGC Style' &&
-    (
-      words.includes('use the product') ||
-      words.includes('demonstrate') ||
-      words.includes('try it') ||
-      words.includes('show how') ||
-      words.includes('using the product')
-    )
-  ) return 'demonstration';
-
-  if (shot.actionType === 'camera_move') return 'camera_move';
-  if (shot.actionType === 'product_move') return 'product_move';
-  if (shot.actionType === 'product_action') return 'product_action';
-
-  return 'still';
-}
-
-function AdaptiveTeachingVisual({
-  shot,
-  goal
-}: {
-  shot: Shot;
-  goal: string;
-}) {
-  const mode = getTeachingMode(shot, goal);
-
-  if (mode === 'talking') {
-    return (
-      <div className="teaching-stage talking-stage">
-        <div className="teaching-label">HOW TO FILM THIS</div>
-        <div className="talking-layout">
-          <div className="teaching-phone">PHONE</div>
-          <div className="teaching-arrow">→</div>
-          <div className="creator-frame">
-            <div className="creator-head" />
-            <div className="creator-body">YOU</div>
-            <div className="creator-product">PRODUCT</div>
-          </div>
-        </div>
-        <div className="teaching-caption">LOOK AT THE CAMERA</div>
-        <div className="teaching-tip">
-          Keep yourself and the product visible while you speak.
-        </div>
-      </div>
-    );
+    typeof data?.output_text === 'string' &&
+    data.output_text.trim()
+  ) {
+    return data.output_text.trim();
   }
 
-  if (mode === 'pov') {
-    return (
-      <div className="teaching-stage pov-stage">
-        <div className="teaching-label">POV SETUP</div>
-        <div className="pov-layout">
-          <div className="pov-phone">PHONE<span>↓</span></div>
-          <div className="pov-view">
-            <strong>WHAT VIEWERS SEE</strong>
-            <div>PRODUCT</div>
-          </div>
-        </div>
-        <div className="teaching-caption">FILM FROM YOUR VIEW</div>
-        <div className="teaching-tip">{shot.aimInstruction}</div>
-      </div>
-    );
-  }
+  if (Array.isArray(data?.output)) {
+    const pieces: string[] = [];
 
-  if (mode === 'problem') {
-    return (
-      <div className="teaching-stage talking-stage">
-        <div className="teaching-label">SHOW THE PROBLEM</div>
-        <div className="talking-layout">
-          <div className="teaching-phone">PHONE</div>
-          <div className="teaching-arrow">→</div>
-          <div className="creator-frame">
-            <div className="creator-head" />
-            <div className="creator-body">YOU</div>
-          </div>
-        </div>
-        <div className="teaching-caption">EXPLAIN THE PROBLEM</div>
-        <div className="teaching-tip">{shot.actionInstruction}</div>
-      </div>
-    );
-  }
+    for (const item of data.output) {
+      if (!Array.isArray(item?.content)) continue;
 
-  if (mode === 'demonstration') {
-    return (
-      <div className="teaching-stage demo-stage">
-        <div className="teaching-label">DEMONSTRATE IT</div>
-        <div className="demo-layout">
-          <div className="demo-product">PRODUCT</div>
-          <div className="teaching-arrow">→</div>
-          <div className="demo-action">USE IT</div>
-        </div>
-        <div className="teaching-caption">{shot.actionName}</div>
-        <div className="teaching-tip">{shot.actionInstruction}</div>
-      </div>
-    );
-  }
-
-  if (mode === 'camera_move') return <CameraMovementVisual shot={shot} />;
-  if (mode === 'product_move') return <ProductMovementVisual shot={shot} />;
-  if (mode === 'product_action') return <ProductActionVisual shot={shot} />;
-
-  return <StillVisual />;
-}
-
-function MovementGuide({
-  shot,
-  goal
-}: {
-  shot: Shot;
-  goal: string;
-}) {
-  let title = shot.actionName;
-
-  if (!title) {
-    if (shot.actionType === 'camera_move') title = 'MOVE YOUR PHONE';
-    else if (shot.actionType === 'product_move') title = 'MOVE THE PRODUCT';
-    else if (shot.actionType === 'still') title = 'KEEP STILL';
-    else title = 'DO THIS';
-  }
-
-  return (
-    <div className="movement-card">
-      <div className="step-number">3</div>
-      <div className="step-content">
-        <small>WHAT DO I DO?</small>
-        <h3>{title}</h3>
-
-        <AdaptiveTeachingVisual shot={shot} goal={goal} />
-
-        <div className="action-instruction-box">
-          <span>DO THIS</span>
-          <strong>{shot.actionInstruction}</strong>
-        </div>
-
-        {shot.actionType !== 'still' && (
-          <div className="speed-label">
-            {shot.movementSpeed === 'slow' ? 'DO IT SLOWLY' : 'NORMAL SPEED'}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Resize and compress photos before putting them into the API request.
-// Each data URL is capped so four photos plus the legacy image field fit
-// comfortably below Vercel's request payload limit.
-async function prepareProductPhoto(file: File): Promise<string> {
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const photo = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('This photo could not be opened.'));
-      img.src = objectUrl;
-    });
-
-    const originalWidth = photo.naturalWidth;
-    const originalHeight = photo.naturalHeight;
-    if (!originalWidth || !originalHeight) {
-      throw new Error('This photo has invalid dimensions.');
-    }
-
-    let maxSide = 1200;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const scale = Math.min(1, maxSide / Math.max(originalWidth, originalHeight));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, Math.round(originalWidth * scale));
-      canvas.height = Math.max(1, Math.round(originalHeight * scale));
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Your browser could not process this photo.');
-
-      // JPEG has no transparency: use white behind transparent product images.
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(photo, 0, 0, canvas.width, canvas.height);
-
-      for (const quality of [0.78, 0.65, 0.5, 0.38]) {
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        if (dataUrl.startsWith('data:image/jpeg;base64,') && dataUrl.length <= 400_000) {
-          return dataUrl;
+      for (const content of item.content) {
+        if (
+          typeof content?.text === 'string' &&
+          content.text.trim()
+        ) {
+          pieces.push(content.text);
         }
       }
-      maxSide = Math.round(maxSide * 0.75);
     }
-    throw new Error('This photo is too large to process. Try a smaller image.');
-  } finally {
-    URL.revokeObjectURL(objectUrl);
+
+    return pieces.join('\n').trim();
   }
+
+  return '';
 }
 
-export default function Home() {
-  const [view, setView] = useState<
-    'home' | 'dashboard' | 'create' | 'director' | 'done'
-  >('home');
+const actionVisuals = [
+  'unwrap',
+  'open',
+  'close',
+  'pour',
+  'squeeze',
+  'press',
+  'spray',
+  'twist',
+  'rotate',
+  'flip',
+  'shake',
+  'pull',
+  'push',
+  'slide',
+  'lift',
+  'remove',
+  'place',
+  'pick_up',
+  'tap',
+  'wipe',
+  'apply',
+  'generic'
+];
 
-  const [name, setName] = useState('');
-  const [point, setPoint] = useState('');
-  const [goal, setGoal] = useState(goals[0]);
-  const [personInVideo, setPersonInVideo] = useState<'with' | 'without'>('with');
+const shotProperties = {
+  title: { type: 'string' },
+  duration: { type: 'string' },
 
-  const [images, setImages] = useState<string[]>([]);
+  recordFrom: {
+    type: 'string',
+    enum: ['front', 'top', 'side', 'above_side', 'below']
+  },
 
-  const [concept, setConcept] = useState<Concept | null>(null);
-  const [shot, setShot] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  phoneSetup: {
+    type: 'string',
+    enum: ['hold', 'fixed']
+  },
 
-  async function pickFiles(files?: FileList | null) {
-    if (!files?.length) return;
+  productSetup: {
+    type: 'string',
+    enum: ['hold', 'table', 'surface']
+  },
 
-    const selected = Array.from(files);
-    if (images.length + selected.length > 4) {
-      setError('You can upload up to 4 photos.');
-      return;
+  setupInstruction: { type: 'string' },
+  aimInstruction: { type: 'string' },
+
+  actionType: {
+    type: 'string',
+    enum: [
+      'camera_move',
+      'product_move',
+      'product_action',
+      'still'
+    ]
+  },
+
+  actionName: { type: 'string' },
+
+  actionVisual: {
+    type: 'string',
+    enum: actionVisuals
+  },
+
+  movingObject: {
+    type: 'string',
+    enum: ['phone', 'product', 'none']
+  },
+
+  movement: {
+    type: 'string',
+    enum: [
+      'none',
+      'closer',
+      'away',
+      'left',
+      'right',
+      'up',
+      'down',
+      'around'
+    ]
+  },
+
+  movementSpeed: {
+    type: 'string',
+    enum: ['slow', 'normal']
+  },
+
+  actionInstruction: { type: 'string' },
+  recordInstruction: { type: 'string' },
+  say: { type: 'string' }
+};
+
+const filmingPlanSchema = {
+  type: 'object',
+  additionalProperties: false,
+
+  properties: {
+    concept: {
+      type: 'object',
+      additionalProperties: false,
+
+      properties: {
+        title: { type: 'string' },
+        hook: { type: 'string' },
+        description: { type: 'string' },
+
+        shots: {
+          type: 'array',
+          minItems: 6,
+          maxItems: 6,
+
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: shotProperties,
+            required: Object.keys(shotProperties)
+          }
+        }
+      },
+
+      required: [
+        'title',
+        'hook',
+        'description',
+        'shots'
+      ]
     }
-    if (selected.some(file => !file.type.startsWith('image/'))) {
-      setError('Please choose image files only.');
-      return;
-    }
+  },
 
-    try {
-      const newImages = await Promise.all(selected.map(prepareProductPhoto));
-      setImages(current => [...current, ...newImages].slice(0, 4));
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not process your photos.');
-    }
+  required: ['concept']
+};
+
+const instructions = `
+You are ShootAI, an expert short-form product video director
+and beginner-friendly filming coach.
+
+Analyze the uploaded product and create ONE practical filming
+concept containing EXACTLY SIX shots.
+
+You do not generate video.
+You do not teach editing.
+You guide the user to film REAL footage using their phone.
+
+==================================================
+1. ANALYZE THE ACTUAL PRODUCT
+==================================================
+
+The user may upload 1 to 4 photos of the SAME product.
+
+Photo 1 is the main photo.
+
+Use all photos to understand:
+- Product identity and visible branding
+- Packaging and physical form
+- Visible labels and components
+- Texture when visible
+- Openings, caps, pumps or nozzles
+- Realistic ways to film and demonstrate it
+
+Distinguish confirmed details from assumptions.
+
+Never invent:
+- Features
+- Ingredients
+- Benefits
+- Results
+- Prices
+- Discounts
+- Accessories
+- Components
+
+Do not confuse packaging graphics or ingredients with
+physical objects available for filming.
+
+Papaya soap does not mean the creator has a papaya.
+
+Only use the actual product, its visible components,
+and ordinary surroundings when appropriate.
+
+==================================================
+2. PHYSICAL REALITY
+==================================================
+
+Every shot must be possible to film in real life.
+
+Never instruct the creator to:
+- Cut or damage a product unnecessarily
+- Pour a solid object
+- Spray something without a sprayer
+- Squeeze a rigid object
+- Open something that cannot open
+- Press a button that does not exist
+- Remove a non-removable component
+- Fake a product transformation
+- Mime an imaginary object
+- Pretend to demonstrate an unavailable object
+
+When uncertain, use a safe real action:
+place, rotate, lift, show a detail, move the phone,
+or keep everything still.
+
+Do not require special equipment or extra props.
+
+==================================================
+3. PERSON IN VIDEO — HIGHEST PRIORITY
+==================================================
+
+The user explicitly chooses WITH PERSON or WITHOUT PERSON.
+
+THIS SETTING OVERRIDES EVERY VIDEO GOAL,
+INCLUDING UGC STYLE AND PROBLEM → SOLUTION.
+
+It applies to ALL SIX shots.
+
+WITHOUT PERSON:
+
+- No visible face, head, torso, body, silhouette,
+  reflection or talking-head footage.
+- Never tell the creator to look at the camera.
+- Never tell the creator to speak or talk to camera.
+- Never tell the creator to smile, react, pose,
+  stand in frame or use facial expressions.
+- Never create a creator-facing problem shot.
+- Never aim the phone at the creator.
+- Never use actionName "TALK TO CAMERA".
+- Never write creator-facing instructions in ANY field.
+- Hands are allowed only for real product handling
+  or a useful hands-only demonstration.
+- POV footage is allowed.
+- Prefer product-only footage when hands are unnecessary.
+- Dialogue, if useful, is OFF-CAMERA VOICEOVER.
+- The say field contains voiceover words only.
+- Voiceover must not require a visible speaker.
+- If a shot cannot work without showing a person,
+  replace it with a different shot.
+
+For WITHOUT PERSON + PROBLEM → SOLUTION:
+
+Communicate the problem using relevant real footage,
+the product, or an ordinary environment.
+
+A voiceover may explain the problem while the camera
+shows appropriate footage.
+
+Do not use a creator-facing problem shot.
+
+Do not introduce an imaginary prop.
+
+Do not show the product before its intended reveal
+unless the concept deliberately uses a product-first hook.
+
+For WITHOUT PERSON + UGC STYLE:
+
+Use authentic product-focused footage, hands-only
+demonstrations and POV angles.
+
+UGC does not require showing the creator's face.
+
+WITH PERSON:
+
+A visible creator is allowed when useful.
+
+Do not force a person into every shot.
+
+Product-only and POV footage are still allowed.
+
+==================================================
+4. FOLLOW THE VIDEO GOAL
+==================================================
+
+The selected goal controls the concept and shot sequence,
+but NEVER overrides the person setting.
+
+Viral / Attention:
+Use an engaging opening, interesting real product details,
+and satisfying physical movement.
+Do not promise virality.
+
+Sell My Product:
+Focus on the actual selling point, visible features,
+and realistic demonstrations.
+
+UGC Style:
+Make the footage natural and believable.
+If WITHOUT PERSON, use hands/POV/product-only UGC.
+
+Product Showcase:
+Make the product the visual hero.
+Show packaging, design, labels and real details.
+
+Problem → Solution:
+Follow a coherent sequence:
+PROBLEM → PRODUCT → USE → SOLUTION OR BENEFIT.
+
+If WITHOUT PERSON, communicate the problem through
+product/environment footage and optional voiceover.
+
+Never fake before-and-after results or testimonials.
+
+==================================================
+5. SIX COHERENT SHOTS
+==================================================
+
+Create exactly ONE concept with SIX shots.
+
+Each shot must have a clear purpose.
+
+Avoid repetitive framing and movement.
+
+Make the plan specific to the actual uploaded product.
+
+Every shot must explain:
+
+1. Where to position the phone
+2. Whether to hold or fix the phone
+3. Where the product should be
+4. What appears in the frame
+5. What physical action to perform
+6. What footage to record
+7. What to say, if anything
+8. How long to record
+
+Use simple beginner-friendly English.
+
+Give practical phone distances in cm when useful.
+
+Explain whether the phone is above, in front of,
+beside or below the product.
+
+Mention light direction when helpful.
+
+==================================================
+6. OUTPUT FIELD RULES
+==================================================
+
+recordFrom:
+front, top, side, above_side or below.
+
+phoneSetup:
+hold or fixed.
+
+productSetup:
+hold, table or surface.
+
+actionType:
+camera_move, product_move, product_action or still.
+
+Use camera_move only when the phone moves.
+
+Use product_move only when the whole product moves.
+
+Use product_action only for a real action involving
+the actual product.
+
+Use still when no movement is required.
+
+actionVisual must match the actual physical action.
+
+Use generic if no specific action visual fits.
+
+Never select a misleading animation just because
+an animation exists.
+
+actionName must be a short accurate command.
+
+For WITHOUT PERSON, examples include:
+SHOW THE PRODUCT
+TURN THE PRODUCT
+SHOW THE DETAIL
+OPEN THE PACKAGE
+KEEP IT STILL
+FILM THE PROBLEM
+
+Never use TALK TO CAMERA in WITHOUT PERSON mode.
+
+movingObject:
+phone, product or none.
+
+movement:
+none, closer, away, left, right, up, down or around.
+
+movementSpeed:
+slow or normal.
+
+All fields must describe the SAME physical shot.
+
+==================================================
+7. NATURAL DIALOGUE
+==================================================
+
+The say field contains the exact spoken line.
+
+Use natural conversational English.
+
+Avoid robotic advertising language.
+
+Do not invent first-person experiences,
+testimonials or unsupported results.
+
+Most spoken lines should be approximately
+4 to 14 words.
+
+Do not force dialogue into every shot.
+
+Use an empty string when speech is unnecessary.
+
+For WITHOUT PERSON:
+
+Every non-empty say field is OFF-CAMERA VOICEOVER.
+
+Do not instruct the creator to deliver the line
+while appearing on screen.
+
+Do not use phrases such as:
+"Look at the camera and say..."
+"Tell the camera..."
+"Speak directly to viewers..."
+"Smile as you explain..."
+
+The actionInstruction must describe the actual
+visual action, not the speaker's performance.
+
+The recordInstruction must describe the footage,
+not a talking-head recording.
+
+==================================================
+8. FILMING ONLY
+==================================================
+
+Every shot must work as real recorded footage.
+
+Do not require:
+- Jump-cut tricks
+- Object swaps
+- Masking
+- Green screen
+- Compositing
+- Fake transformations
+- Duplicated products
+- Visual effects
+- Editing-dependent transitions
+
+Do not explain editing.
+
+==================================================
+9. FINAL CONSISTENCY CHECK
+==================================================
+
+Before returning JSON, inspect EVERY shot.
+
+Check:
+- Is the correct physical product used?
+- Are all required objects actually available?
+- Is the action physically possible?
+- Does the diagram data match the written directions?
+- Does every instruction describe the same shot?
+- Are all claims supported?
+- Does the shot match the selected goal?
+- Are there exactly six coherent shots?
+
+If WITHOUT PERSON, additionally check:
+
+- No talking to camera
+- No creator-facing footage
+- No face or body in frame
+- No facial expressions
+- No person in reflections
+- No instruction to aim at the creator
+- No creator-facing problem shot
+- No person-dependent action
+- Any speech is off-camera voiceover
+
+Rewrite any violating shot before returning JSON.
+
+Return ONLY structured JSON.
+
+Do not output internal product analysis.
+Do not offer alternative concepts.
+`;
+
+function getPersonSetting(value: unknown): PersonSetting {
+  // Accept both the old frontend values and the new values.
+  // This prevents "without" from silently becoming WITH PERSON.
+  if (
+    value === 'without' ||
+    value === 'without_person'
+  ) {
+    return 'without_person';
   }
 
-  async function generateIdeas() {
+  return 'with_person';
+}
+
+function getPersonViolations(plan: FilmingPlan): string[] {
+  const violations: string[] = [];
+
+  // Check the visual and filming directions, not the spoken
+  // voiceover text. A voiceover can legitimately mention a face
+  // or a person without showing one on screen.
+  const forbiddenPatterns: RegExp[] = [
+    /\btalk(?:ing)?\s+to\s+(?:the\s+)?camera\b/i,
+    /\bspeak(?:ing)?\s+to\s+(?:the\s+)?camera\b/i,
+    /\blook\s+(?:directly\s+)?(?:at|into)\s+(?:the\s+)?camera\b/i,
+    /\bface\s+(?:the\s+)?camera\b/i,
+    /\b(?:show|film|record|frame|capture)\s+(?:your|the)\s+(?:face|head|body|torso)\b/i,
+    /\b(?:point|aim|turn)\s+(?:the\s+)?(?:phone|camera)\s+(?:at|toward|towards)\s+(?:yourself|the\s+creator|your\s+face)\b/i,
+    /\b(?:smile|frown|nod|react)\s+(?:at|to|into|for)\s+(?:the\s+)?camera\b/i,
+    /\b(?:facial\s+expression|talking[- ]head|creator[- ]facing)\b/i,
+    /\b(?:stand|sit|step|walk)\s+(?:in|into)\s+(?:the\s+)?frame\b/i,
+    /\b(?:show|include|capture)\s+(?:yourself|the\s+creator|a\s+person)\s+(?:in|on)\s+(?:the\s+)?(?:frame|screen|camera)\b/i,
+    /\b(?:your|the creator's)\s+(?:face|head|body|torso)\s+(?:in|on)\s+(?:the\s+)?frame\b/i
+  ];
+
+  plan.concept.shots.forEach((shot, index) => {
+    const visualDirections = [
+      shot.title,
+      shot.setupInstruction,
+      shot.aimInstruction,
+      shot.actionName,
+      shot.actionInstruction,
+      shot.recordInstruction
+    ].join(' ');
+
+    if (
+      forbiddenPatterns.some(pattern =>
+        pattern.test(visualDirections)
+      )
+    ) {
+      violations.push(
+        `Shot ${index + 1} contains person-dependent filming directions.`
+      );
+    }
+  });
+
+  return violations;
+}
+
+function parsePlan(outputText: string): FilmingPlan {
+  const result = JSON.parse(outputText) as FilmingPlan;
+
+  if (
+    !result?.concept ||
+    !Array.isArray(result.concept.shots) ||
+    result.concept.shots.length !== 6
+  ) {
+    throw new Error('Invalid six-shot filming plan.');
+  }
+
+  return result;
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as RequestBody;
+
+    const name = body.name?.trim();
+    const sellingPoint = body.sellingPoint?.trim() || '';
+    const goal = body.goal?.trim() || 'Product Showcase';
+    const personInVideo = getPersonSetting(body.personInVideo);
+
+    if (!name) {
+      return NextResponse.json(
+        { error: 'Product name is required.' },
+        { status: 400 }
+      );
+    }
+
+    const images = Array.isArray(body.images)
+      ? body.images.filter(
+          (item): item is string =>
+            typeof item === 'string' &&
+            item.startsWith('data:image/')
+        )
+      : [];
+
+    // Compatibility with the older single-image frontend.
+    if (
+      images.length === 0 &&
+      typeof body.image === 'string' &&
+      body.image.startsWith('data:image/')
+    ) {
+      images.push(body.image);
+    }
+
     if (images.length === 0) {
-      setError('Please upload at least 1 product photo.');
-      return;
+      return NextResponse.json(
+        { error: 'Please upload at least one product photo.' },
+        { status: 400 }
+      );
     }
 
-    if (!name.trim()) {
-      setError('Please enter your product name.');
-      return;
+    if (images.length > 4) {
+      return NextResponse.json(
+        { error: 'You can upload up to 4 product photos.' },
+        { status: 400 }
+      );
     }
 
-    setLoading(true);
-    setError('');
+    const apiKey = process.env.OPENAI_API_KEY;
 
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name,
-          sellingPoint: point,
-          goal,
-          personInVideo,
-          image: images[0],
-          images
-        })
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'OPENAI_API_KEY is not configured.' },
+        { status: 500 }
+      );
+    }
+
+    const userText = `
+PRODUCT NAME:
+${name}
+
+MAIN SELLING POINT:
+${sellingPoint || 'Not provided'}
+
+SELECTED VIDEO GOAL:
+${goal}
+
+PERSON IN VIDEO:
+${personInVideo === 'without_person'
+  ? 'WITHOUT PERSON'
+  : 'WITH PERSON'}
+
+The uploaded photos show the actual physical product.
+
+All photos show the SAME product from different views.
+
+Photo 1 is the MAIN PHOTO.
+
+Analyze all photos together before planning the shots.
+
+Create ONE concept containing EXACTLY SIX shots.
+
+IMPORTANT:
+The person setting is a HARD CONSTRAINT for every shot.
+
+${personInVideo === 'without_person'
+  ? `
+WITHOUT PERSON IS SELECTED.
+
+Do not show a visible creator, face or body.
+Do not create talking-to-camera shots.
+Do not aim the phone at the creator.
+Do not use facial expressions or creator-facing actions.
+Hands-only and POV footage are allowed when useful.
+Any spoken line must be OFF-CAMERA VOICEOVER.
+This restriction overrides UGC and Problem → Solution.
+`
+  : `
+WITH PERSON IS SELECTED.
+
+A visible creator is allowed when useful.
+Do not force a person into every shot.
+`}
+
+Every action must be physically possible.
+
+Never mime imaginary objects.
+
+Do not invent props, features, claims or results.
+
+Do not require editing tricks.
+`;
+
+    const content: any[] = [
+      {
+        type: 'input_text',
+        text: userText
+      }
+    ];
+
+    for (let index = 0; index < images.length; index++) {
+      content.push({
+        type: 'input_text',
+        text:
+          index === 0
+            ? 'MAIN PRODUCT PHOTO:'
+            : `ADDITIONAL PRODUCT PHOTO ${index + 1}:`
       });
 
-      const responseText = await response.text();
-      let data: any;
-      try {
-        data = JSON.parse(responseText);
-      } catch {
-        throw new Error(
-          response.status === 413
-            ? 'Photos are too large for the server. Please remove and re-upload them.'
-            : `Server returned an unexpected response (${response.status}). Please try again.`
-        );
-      }
+      content.push({
+        type: 'input_image',
+        image_url: images[index]
+      });
+    }
+
+    async function requestPlan(
+      inputContent: any[]
+    ): Promise<FilmingPlan> {
+      const response = await fetch(
+        'https://api.openai.com/v1/responses',
+        {
+          method: 'POST',
+
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+
+          body: JSON.stringify({
+            model: 'gpt-5-mini',
+
+            instructions,
+
+            input: [
+              {
+                role: 'user',
+                content: inputContent
+              }
+            ],
+
+            max_output_tokens: 10000,
+
+            text: {
+              format: {
+                type: 'json_schema',
+                name: 'shootai_filming_plan',
+                strict: true,
+                schema: filmingPlanSchema
+              }
+            }
+          })
+        }
+      );
+
+      const data = await response.json();
 
       if (!response.ok) {
+        console.error(
+          'OpenAI API error:',
+          JSON.stringify(data)
+        );
+
         throw new Error(
-          data.error || 'Could not generate filming ideas.'
+          data?.error?.message ||
+          'ShootAI could not generate the filming plan.'
         );
       }
 
-      if (!data.concept || !Array.isArray(data.concept.shots)) {
-        throw new Error('ShootAI received an invalid response.');
+      const outputText = extractOutputText(data);
+
+      if (!outputText) {
+        console.error(
+          'ShootAI empty response:',
+          JSON.stringify(data)
+        );
+
+        throw new Error(
+          'ShootAI received an empty response.'
+        );
       }
 
-      setConcept(data.concept);
-      setShot(0);
-      setView('director');
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Something went wrong. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const nav = (
-    <nav>
-      <button className="logo" onClick={() => setView('home')}>
-        Shoot<span>AI</span>
-      </button>
-
-      <button className="navbtn" onClick={() => setView('dashboard')}>
-        Dashboard
-      </button>
-    </nav>
-  );
-
-  if (view === 'home') {
-    return (
-      <main>
-        {nav}
-
-        <section className="hero">
-          <div>
-            <div className="badge">AI PRODUCT FILMING DIRECTOR</div>
-
-            <h1>Don’t know how to film your product?</h1>
-
-            <p className="lead">
-              Show ShootAI what you sell. Get a content concept and exact
-              shot-by-shot instructions you can follow with your phone.
-            </p>
-
-            <button className="cta" onClick={() => setView('create')}>
-              Create a filming plan →
-            </button>
-
-            <p className="tiny">
-              No video generation. No editing. Just clear direction.
-            </p>
-          </div>
-
-          <div className="mock">
-            <div className="phone">
-              <div className="frame">
-                <div className="box">
-                  YOUR<br />PRODUCT
-                </div>
-                <span>✓ Great framing</span>
-              </div>
-
-              <small>SHOT 1 OF 6 · HOOK</small>
-              <b>Bring the product quickly toward the camera.</b>
-            </div>
-          </div>
-        </section>
-
-        <section className="how">
-          <p>HOW IT WORKS</p>
-          <h2>From product to shot list in minutes.</h2>
-
-          <div className="steps">
-            <article>
-              <i>01</i>
-              <h3>Show your product</h3>
-              <span>
-                Upload product photos and tell us the key selling point.
-              </span>
-            </article>
-
-            <article>
-              <i>02</i>
-              <h3>AI plans your video</h3>
-              <span>
-                ShootAI studies your product and creates the filming plan for you.
-              </span>
-            </article>
-
-            <article>
-              <i>03</i>
-              <h3>Follow the director</h3>
-              <span>
-                Film one shot at a time with simple visual directions.
-              </span>
-            </article>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  if (view === 'dashboard') {
-    return (
-      <main>
-        {nav}
-
-        <section className="page">
-          <div className="row">
-            <div>
-              <div className="badge">YOUR WORKSPACE</div>
-              <h2>Projects</h2>
-            </div>
-
-            <button className="cta small" onClick={() => setView('create')}>
-              + New project
-            </button>
-          </div>
-
-          <div className="empty">
-            <div>◎</div>
-            <h3>Your first product video starts here.</h3>
-            <p>
-              Create a project and ShootAI will plan every shot for you.
-            </p>
-
-            <button className="cta small" onClick={() => setView('create')}>
-              Create project →
-            </button>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  if (view === 'create') {
-    return (
-      <main>
-        {nav}
-
-        <section className="page narrow">
-          <button className="back" onClick={() => setView('dashboard')}>
-            ← Dashboard
-          </button>
-
-          <div className="badge">NEW PROJECT</div>
-          <h2>What are you filming?</h2>
-
-          <p>
-            Give ShootAI enough context to create a useful plan.
-          </p>
-
-          <div style={{ margin: '25px 0' }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 12
-              }}
-            >
-              <strong style={{ fontSize: 13 }}>Product photos</strong>
-
-              <span style={{ fontSize: 12, color: '#8f97a1' }}>
-                {images.length}/4 photos · 1 required
-              </span>
-            </div>
-
-            {images.length === 0 ? (
-              <label className="upload" style={{ margin: 0 }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={e => {
-                    void pickFiles(e.target.files);
-                    e.target.value = '';
-                  }}
-                />
-
-                <strong>＋</strong>
-                <b>Upload product photos</b>
-                <span>Choose 1–4 photos of the same product</span>
-              </label>
-            ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  gap: 12
-                }}
-              >
-                {images.map((src, index) => (
-                  <div
-                    key={`${index}-${src.slice(-20)}`}
-                    style={{
-                      position: 'relative',
-                      border: '1px solid #343a42',
-                      background: '#111418',
-                      borderRadius: 14,
-                      padding: 10
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: 150,
-                        background: '#f5f5f3',
-                        borderRadius: 9,
-                        overflow: 'hidden',
-                        display: 'grid',
-                        placeItems: 'center'
-                      }}
-                    >
-                      <img
-                        src={src}
-                        alt={`Product photo ${index + 1}`}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'contain'
-                        }}
-                      />
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: 8,
-                        marginTop: 10
-                      }}
-                    >
-                      <span
-                        style={{
-                          color: '#c8cdd2',
-                          fontSize: 11,
-                          fontWeight: 700
-                        }}
-                      >
-                        {index === 0 ? 'MAIN PHOTO' : `PHOTO ${index + 1}`}
-                      </span>
-
-                      <button
-                        type="button"
-                        aria-label={`Remove photo ${index + 1}`}
-                        onClick={() =>
-                          setImages(current =>
-                            current.filter((_, i) => i !== index)
-                          )
-                        }
-                        style={{
-                          border: '1px solid #343a42',
-                          borderRadius: 7,
-                          padding: '5px 9px',
-                          background: '#1c2025',
-                          color: '#d9dde2',
-                          fontSize: 11,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {images.length < 4 && (
-                  <label
-                    style={{
-                      margin: 0,
-                      minHeight: 190,
-                      border: '1px dashed #414852',
-                      borderRadius: 14,
-                      background: '#111418',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 9,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      style={{ display: 'none' }}
-                      onChange={e => {
-                        void pickFiles(e.target.files);
-                        e.target.value = '';
-                      }}
-                    />
-
-                    <span style={{ color: '#eaff47', fontSize: 28 }}>＋</span>
-
-                    <span style={{ color: '#d9dde2', fontSize: 12 }}>
-                      Add photos
-                    </span>
-
-                    <span style={{ color: '#747c86', fontSize: 11 }}>
-                      Up to {4 - images.length} more
-                    </span>
-                  </label>
-                )}
-              </div>
-            )}
-          </div>
-
-          <label>
-            Product name
-
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Enter your product name"
-            />
-          </label>
-
-          <label>
-            Main selling point
-
-            <textarea
-              value={point}
-              onChange={e => setPoint(e.target.value)}
-              placeholder="What should customers know about it?"
-            />
-          </label>
-
-          <label>
-            Video goal
-
-            <div className="goalgrid">
-              {goals.map(g => (
-                <button
-                  type="button"
-                  key={g}
-                  className={goal === g ? 'selected' : ''}
-                  onClick={() => setGoal(g)}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
-          </label>
-
-          <label>
-            Person in video
-
-            <div className="goalgrid">
-              <button
-                type="button"
-                className={personInVideo === 'with' ? 'selected' : ''}
-                onClick={() => setPersonInVideo('with')}
-              >
-                With Person
-              </button>
-
-              <button
-                type="button"
-                className={personInVideo === 'without' ? 'selected' : ''}
-                onClick={() => setPersonInVideo('without')}
-              >
-                Without Person
-              </button>
-            </div>
-
-            <span style={{ display: 'block', marginTop: 8, color: '#8f97a1', fontSize: 12 }}>
-              Without Person keeps faces and bodies off-camera. Hands/POV can still be used when needed.
-            </span>
-          </label>
-
-          {error && (
-            <p style={{ color: '#ff6b6b', marginTop: 12 }}>
-              {error}
-            </p>
-          )}
-
-          <button
-            className="cta full"
-            onClick={generateIdeas}
-            disabled={loading}
-          >
-            {loading
-              ? 'ShootAI is planning your video...'
-              : 'Generate filming plan ✦'}
-          </button>
-        </section>
-      </main>
-    );
-  }
-
-  if (view === 'director') {
-    const shots = concept?.shots || [];
-    const s = shots[shot];
-
-    if (!s) {
-      return (
-        <main>
-          {nav}
-          <section className="page narrow">
-            <h2>No shot available.</h2>
-            <button className="cta" onClick={() => setView('create')}>
-              Back to product details
-            </button>
-          </section>
-        </main>
-      );
+      return parsePlan(outputText);
     }
 
-    return (
-      <main>
-        {nav}
+    let result = await requestPlan(content);
 
-        <section className="page narrow">
-          <button className="back" onClick={() => setView('create')}>
-            ← Product details
-          </button>
+    // Validate WITHOUT PERSON plans before returning them.
+    // If a violation is found, ask the AI to regenerate the
+    // plan using the same product photos and stricter feedback.
+    if (personInVideo === 'without_person') {
+      let violations = getPersonViolations(result);
 
-          <div className="progress">
-            <i
-              style={{
-                width: `${((shot + 1) / shots.length) * 100}%`
-              }}
-            />
-          </div>
+      if (violations.length > 0) {
+        console.warn(
+          'ShootAI person constraint violations:',
+          violations
+        );
 
-          <div className="shotrow">
-            <span>SHOT {shot + 1} OF {shots.length}</span>
-            <span>{s.duration.toUpperCase()}</span>
-          </div>
+        const correctionContent = [
+          ...content,
+          {
+            type: 'input_text',
+            text: `
+The previous plan violated WITHOUT PERSON.
 
-          <h2>{s.title}</h2>
+Previous plan:
+${JSON.stringify(result)}
 
-          <div className="director-intro">
-            Follow these steps. Don’t worry about camera terms.
-          </div>
+Detected problems:
+${violations.join('\n')}
 
-          <div className="director-step-card direction-step">
-            <div className="step-number">1</div>
+Regenerate the ENTIRE six-shot plan.
 
-            <div className="step-content">
-              <small>CAMERA DIRECTION</small>
-              <DirectionDiagram shot={s} />
-              <p className="aim-instruction">{s.aimInstruction}</p>
-            </div>
-          </div>
+WITHOUT PERSON is mandatory.
 
-          <SetupGuide shot={s} />
-          <MovementGuide shot={s} goal={goal} />
+No talking to camera.
+No creator-facing shots.
+No visible face or body.
+No facial expressions.
+No instructions to aim the phone at the creator.
 
-          <div className="record-card">
-            <div className="step-number">4</div>
+Use real product-only footage or appropriate hands/POV shots.
 
-            <div className="step-content">
-              <small>RECORD</small>
-              <h3>RECORD FOR {s.duration.toUpperCase()}</h3>
+If speech is useful, it must be off-camera voiceover.
 
-              <div className="record-timer">
-                <span className="big-record-dot" />
-                <strong>{s.duration}</strong>
-              </div>
+Keep the actual product and selected video goal.
 
-              <p>{s.recordInstruction}</p>
-            </div>
-          </div>
+Return the corrected structured JSON only.
+`
+          }
+        ];
 
-          {s.say && (
-            <div className="say">
-              <small>WHAT TO SAY</small>
-              <strong>{s.say}</strong>
-            </div>
-          )}
+        result = await requestPlan(correctionContent);
+        violations = getPersonViolations(result);
 
-          <button
-            className="cta full"
-            onClick={() =>
-              shot < shots.length - 1
-                ? setShot(shot + 1)
-                : setView('done')
-            }
-          >
-            {shot < shots.length - 1
-              ? '✓ Done — Next shot'
-              : '✓ Complete filming plan'}
-          </button>
-        </section>
-      </main>
+        if (violations.length > 0) {
+          console.error(
+            'ShootAI correction still violated person setting:',
+            violations
+          );
+
+          return NextResponse.json(
+            {
+              error:
+                'ShootAI could not create a plan that follows Without Person. Please try generating again.'
+            },
+            { status: 422 }
+          );
+        }
+      }
+    }
+
+    return NextResponse.json(result);
+
+  } catch (error) {
+    console.error('Generate route error:', error);
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Something went wrong while generating your filming plan.'
+      },
+      { status: 500 }
     );
   }
-
-  return (
-    <main>
-      {nav}
-
-      <section className="finish">
-        <div className="tick">✓</div>
-        <div className="badge">FILMING PLAN COMPLETE</div>
-
-        <h2>You know exactly what to shoot.</h2>
-
-        <p>
-          Follow your six shots while filming, then edit the footage
-          in your preferred editor.
-        </p>
-
-        <div className="donegrid">
-          {(concept?.shots || []).map((s, i) => (
-            <div key={`${s.title}-${i}`}>
-              ✓ <span>{s.title}</span>
-            </div>
-          ))}
-        </div>
-
-        <button
-          className="cta"
-          onClick={() => {
-            setName('');
-            setPoint('');
-            setImages([]);
-            setConcept(null);
-            setShot(0);
-            setError('');
-            setView('create');
-          }}
-        >
-          Create another plan →
-        </button>
-      </section>
-    </main>
-  );
 }
