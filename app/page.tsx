@@ -3,14 +3,8 @@
 
 import { useState } from 'react';
 
+type PersonSetting = 'with_person' | 'without_person';
 type ActionType = 'camera_move' | 'product_move' | 'product_action' | 'still';
-
-type ActionVisual =
-  | 'unwrap' | 'open' | 'close' | 'pour' | 'squeeze'
-  | 'press' | 'spray' | 'twist' | 'rotate' | 'flip'
-  | 'shake' | 'pull' | 'push' | 'slide' | 'lift'
-  | 'remove' | 'place' | 'pick_up' | 'tap'
-  | 'wipe' | 'apply' | 'generic';
 
 type Shot = {
   title: string;
@@ -22,7 +16,7 @@ type Shot = {
   aimInstruction: string;
   actionType: ActionType;
   actionName: string;
-  actionVisual: ActionVisual;
+  actionVisual: string;
   movingObject: 'phone' | 'product' | 'none';
   movement: 'none' | 'closer' | 'away' | 'left' | 'right' | 'up' | 'down' | 'around';
   movementSpeed: 'slow' | 'normal';
@@ -53,8 +47,75 @@ const directionInfo = {
   below: { title: 'RECORD FROM BELOW', short: 'BELOW' }
 };
 
+function isEnvironmentShot(shot: Shot): boolean {
+  const words = [
+    shot.title,
+    shot.setupInstruction,
+    shot.aimInstruction,
+    shot.actionInstruction,
+    shot.recordInstruction
+  ].join(' ').toLowerCase();
+
+  const noProduct =
+    /\bno product\b/.test(words) ||
+    /\bproduct is not\b/.test(words) ||
+    /\bproduct isn't\b/.test(words) ||
+    /\bwithout the product\b/.test(words) ||
+    /\bproduct (?:out of|outside) (?:the )?frame\b/.test(words) ||
+    /\bempty (?:bathroom )?(?:counter|surface|table|sink)\b/.test(words);
+
+  const productAction =
+    shot.actionType === 'product_move' ||
+    shot.actionType === 'product_action';
+
+  return noProduct && !productAction;
+}
+
+function getSceneLabel(shot: Shot): string {
+  if (!isEnvironmentShot(shot)) return 'PRODUCT';
+
+  const words = [
+    shot.title,
+    shot.setupInstruction,
+    shot.aimInstruction,
+    shot.recordInstruction
+  ].join(' ').toLowerCase();
+
+  if (words.includes('sink')) return 'SINK';
+  if (words.includes('bathroom')) return 'BATHROOM';
+  if (words.includes('counter')) return 'COUNTER';
+  if (words.includes('table')) return 'TABLE';
+  return 'BACKGROUND';
+}
+
+function parseShotText(value: string) {
+  const text: string[] = [];
+  const voiceover: string[] = [];
+  const lines = (value || '').split(/\n+/);
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    if (/^TEXT\s*:/i.test(trimmed)) {
+      text.push(trimmed.replace(/^TEXT\s*:/i, '').trim());
+    } else if (/^VOICEOVER\s*:/i.test(trimmed)) {
+      voiceover.push(trimmed.replace(/^VOICEOVER\s*:/i, '').trim());
+    } else {
+      // Backward compatibility with older filming plans.
+      voiceover.push(trimmed);
+    }
+  }
+
+  return {
+    text: text.filter(Boolean).join('\n'),
+    voiceover: voiceover.filter(Boolean).join('\n')
+  };
+}
+
 function DirectionDiagram({ shot }: { shot: Shot }) {
   const direction = directionInfo[shot.recordFrom] || directionInfo.front;
+  const scene = getSceneLabel(shot);
 
   return (
     <div className={`new-director-diagram direction-${shot.recordFrom}`}>
@@ -73,7 +134,7 @@ function DirectionDiagram({ shot }: { shot: Shot }) {
         </div>
 
         <div className="direction-product">
-          <span>PRODUCT</span>
+          <span>{scene}</span>
         </div>
       </div>
 
@@ -86,6 +147,7 @@ function DirectionDiagram({ shot }: { shot: Shot }) {
 }
 
 function SetupGuide({ shot }: { shot: Shot }) {
+  const environment = isEnvironmentShot(shot);
   const phoneText =
     shot.phoneSetup === 'hold' ? 'HOLD YOUR PHONE' : 'KEEP PHONE FIXED';
 
@@ -111,8 +173,10 @@ function SetupGuide({ shot }: { shot: Shot }) {
             </strong>
           </div>
           <div>
-            <span>PRODUCT</span>
-            <strong>{productText}</strong>
+            <span>{environment ? 'IN THE FRAME' : 'PRODUCT'}</span>
+            <strong>
+              {environment ? getSceneLabel(shot) : productText}
+            </strong>
           </div>
         </div>
 
@@ -123,11 +187,11 @@ function SetupGuide({ shot }: { shot: Shot }) {
 }
 
 function CameraMovementVisual({ shot }: { shot: Shot }) {
-  const movementClass = `move-${shot.movement}`;
+  const scene = getSceneLabel(shot);
 
   return (
     <div className={`movement-stage movement-${shot.movement}`}>
-      <div className={`mini-phone moving-object ${movementClass}`}>
+      <div className={`mini-phone moving-object move-${shot.movement}`}>
         <div className="mini-camera-dot" />
         <span>PHONE</span>
       </div>
@@ -136,14 +200,12 @@ function CameraMovementVisual({ shot }: { shot: Shot }) {
         <i /><i /><i /><b>›</b>
       </div>
 
-      <div className="mini-product">PRODUCT</div>
+      <div className="mini-product">{scene}</div>
     </div>
   );
 }
 
 function ProductMovementVisual({ shot }: { shot: Shot }) {
-  const movementClass = `move-${shot.movement}`;
-
   return (
     <div className={`movement-stage movement-${shot.movement}`}>
       <div className="mini-phone">
@@ -155,8 +217,26 @@ function ProductMovementVisual({ shot }: { shot: Shot }) {
         <i /><i /><i /><b>›</b>
       </div>
 
-      <div className={`mini-product moving-object ${movementClass}`}>
+      <div className={`mini-product moving-object move-${shot.movement}`}>
         PRODUCT
+      </div>
+    </div>
+  );
+}
+
+function StillVisual({ shot }: { shot: Shot }) {
+  const environment = isEnvironmentShot(shot);
+
+  return (
+    <div className="action-stage">
+      <div className="action-label">WHILE RECORDING</div>
+      <div className="still-demo">
+        <div className="still-phone">PHONE</div>
+        <div className="still-lines">· · ·</div>
+        <div className="still-product">{getSceneLabel(shot)}</div>
+      </div>
+      <div className="action-caption still-caption">
+        {environment ? 'KEEP THE SCENE STILL' : 'KEEP EVERYTHING STILL'}
       </div>
     </div>
   );
@@ -164,6 +244,7 @@ function ProductMovementVisual({ shot }: { shot: Shot }) {
 
 function ProductActionVisual({ shot }: { shot: Shot }) {
   const action = shot.actionVisual;
+  const label = shot.actionName || 'SHOW THE PRODUCT';
 
   if (action === 'unwrap') {
     return (
@@ -179,7 +260,7 @@ function ProductActionVisual({ shot }: { shot: Shot }) {
     );
   }
 
-  if (action === 'open' || action === 'remove') {
+  if (action === 'open' || action === 'remove' || action === 'twist') {
     return (
       <div className="action-stage">
         <div className="action-label">WATCH THE PRODUCT</div>
@@ -188,32 +269,16 @@ function ProductActionVisual({ shot }: { shot: Shot }) {
             <div className="action-cap" />
             <span>PRODUCT</span>
           </div>
-          <div className="up-action-arrow">↑</div>
-        </div>
-        <div className="action-caption">
-          {action === 'open' ? 'OPEN IT' : 'REMOVE IT'}
-        </div>
-      </div>
-    );
-  }
-
-  if (action === 'twist') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="twist-demo">
-          <div className="twist-arrow">↻</div>
-          <div className="action-bottle">
-            <div className="action-cap" />
-            <span>PRODUCT</span>
+          <div className="up-action-arrow">
+            {action === 'twist' ? '↻' : '↑'}
           </div>
         </div>
-        <div className="action-caption">TWIST IT</div>
+        <div className="action-caption">{label}</div>
       </div>
     );
   }
 
-  if (action === 'rotate') {
+  if (action === 'rotate' || action === 'flip') {
     return (
       <div className="action-stage">
         <div className="action-label">WATCH THE PRODUCT</div>
@@ -221,78 +286,23 @@ function ProductActionVisual({ shot }: { shot: Shot }) {
           <div className="rotate-arrow">↻</div>
           <div className="rotate-product">PRODUCT</div>
         </div>
-        <div className="action-caption">TURN THE PRODUCT</div>
+        <div className="action-caption">{label}</div>
       </div>
     );
   }
 
-  if (action === 'pour') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="pour-demo">
-          <div className="pour-product">PRODUCT</div>
-          <div className="pour-stream" />
-          <div className="pour-cup">CUP</div>
-        </div>
-        <div className="action-caption">POUR IT</div>
-      </div>
-    );
-  }
-
-  if (action === 'squeeze') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="squeeze-demo">
-          <span className="squeeze-left">→</span>
-          <div className="squeeze-product">PRODUCT</div>
-          <span className="squeeze-right">←</span>
-        </div>
-        <div className="action-caption">SQUEEZE IT</div>
-      </div>
-    );
-  }
-
-  if (action === 'press' || action === 'tap') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="press-demo">
-          <div className="press-arrow">↓</div>
-          <div className="press-product">PRODUCT</div>
-        </div>
-        <div className="action-caption">
-          {action === 'tap' ? 'TAP IT' : 'PRESS IT'}
-        </div>
-      </div>
-    );
-  }
-
-  if (action === 'lift' || action === 'pick_up') {
+  if (action === 'lift' || action === 'pick_up' || action === 'place') {
     return (
       <div className="action-stage">
         <div className="action-label">WATCH THE PRODUCT</div>
         <div className="lift-demo">
           <div className="lift-product">PRODUCT</div>
-          <div className="lift-arrow">↑</div>
+          <div className="lift-arrow">
+            {action === 'place' ? '↓' : '↑'}
+          </div>
           <div className="surface-line" />
         </div>
-        <div className="action-caption">LIFT IT UP</div>
-      </div>
-    );
-  }
-
-  if (action === 'place') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="place-demo">
-          <div className="place-product">PRODUCT</div>
-          <div className="place-arrow">↓</div>
-          <div className="surface-line" />
-        </div>
-        <div className="action-caption">PUT IT DOWN</div>
+        <div className="action-caption">{label}</div>
       </div>
     );
   }
@@ -305,13 +315,20 @@ function ProductActionVisual({ shot }: { shot: Shot }) {
           <div className="slide-product">PRODUCT</div>
           <div className="slide-arrow">→</div>
         </div>
-        <div className="action-caption">
-          {action === 'pull'
-            ? 'PULL IT'
-            : action === 'push'
-            ? 'PUSH IT'
-            : 'SLIDE IT'}
+        <div className="action-caption">{label}</div>
+      </div>
+    );
+  }
+
+  if (action === 'press' || action === 'tap') {
+    return (
+      <div className="action-stage">
+        <div className="action-label">WATCH THE PRODUCT</div>
+        <div className="press-demo">
+          <div className="press-arrow">↓</div>
+          <div className="press-product">PRODUCT</div>
         </div>
+        <div className="action-caption">{label}</div>
       </div>
     );
   }
@@ -325,20 +342,7 @@ function ProductActionVisual({ shot }: { shot: Shot }) {
           <div className="shake-product">PRODUCT</div>
           <span>→</span>
         </div>
-        <div className="action-caption">SHAKE IT</div>
-      </div>
-    );
-  }
-
-  if (action === 'flip') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE PRODUCT</div>
-        <div className="flip-demo">
-          <div className="flip-arrow">↻</div>
-          <div className="flip-product">PRODUCT</div>
-        </div>
-        <div className="action-caption">FLIP IT</div>
+        <div className="action-caption">{label}</div>
       </div>
     );
   }
@@ -351,23 +355,7 @@ function ProductActionVisual({ shot }: { shot: Shot }) {
           <div className="spray-product">PRODUCT</div>
           <div className="spray-cloud"><i /><i /><i /></div>
         </div>
-        <div className="action-caption">SPRAY IT</div>
-      </div>
-    );
-  }
-
-  if (action === 'wipe' || action === 'apply') {
-    return (
-      <div className="action-stage">
-        <div className="action-label">WATCH THE ACTION</div>
-        <div className="apply-demo">
-          <div className="apply-product">PRODUCT</div>
-          <div className="apply-arrow">→</div>
-          <div className="apply-target">AREA</div>
-        </div>
-        <div className="action-caption">
-          {action === 'wipe' ? 'WIPE ACROSS' : 'APPLY IT'}
-        </div>
+        <div className="action-caption">{label}</div>
       </div>
     );
   }
@@ -379,108 +367,10 @@ function ProductActionVisual({ shot }: { shot: Shot }) {
         <div className="generic-product">PRODUCT</div>
         <div className="generic-arrow">→</div>
       </div>
-      <div className="action-caption">{shot.actionName}</div>
+      <div className="action-caption">{label}</div>
     </div>
   );
 }
-
-function StillVisual() {
-  return (
-    <div className="action-stage">
-      <div className="action-label">WHILE RECORDING</div>
-      <div className="still-demo">
-        <div className="still-phone">PHONE</div>
-        <div className="still-lines">· · ·</div>
-        <div className="still-product">PRODUCT</div>
-      </div>
-      <div className="action-caption still-caption">
-        KEEP EVERYTHING STILL
-      </div>
-    </div>
-  );
-}
-type TeachingMode =
-  | 'talking'
-  | 'pov'
-  | 'problem'
-  | 'demonstration'
-  | 'product_action'
-  | 'camera_move'
-  | 'product_move'
-  | 'still';
-
-type PersonSetting = 'with_person' | 'without_person';
-
-function getTeachingMode(
-  shot: Shot,
-  goal: string,
-  personInVideo: PersonSetting
-): TeachingMode {
-  const words = [
-    shot.title,
-    shot.actionName,
-    shot.actionInstruction,
-    shot.setupInstruction,
-    shot.aimInstruction,
-    shot.recordInstruction
-  ].join(' ').toLowerCase();
-
-  // Without Person must never select a diagram showing a creator.
-  if (personInVideo === 'without_person') {
-    if (
-      words.includes('pov') ||
-      words.includes('point of view') ||
-      words.includes('your view')
-    ) return 'pov';
-
-    if (shot.actionType === 'camera_move') return 'camera_move';
-    if (shot.actionType === 'product_move') return 'product_move';
-    if (shot.actionType === 'product_action') return 'product_action';
-
-    return 'still';
-  }
-
-  if (
-    goal === 'UGC Style' &&
-    (
-      words.includes('talk to camera') ||
-      words.includes('speak to camera') ||
-      words.includes('look into the camera') ||
-      words.includes('look at the camera') ||
-      words.includes('your face') ||
-      words.includes('face and')
-    )
-  ) return 'talking';
-
-  if (
-    words.includes('pov') ||
-    words.includes('point of view') ||
-    words.includes('your view')
-  ) return 'pov';
-
-  if (
-    goal === 'Problem → Solution' &&
-    (words.includes('problem') || words.includes('before'))
-  ) return 'problem';
-
-  if (
-    goal === 'UGC Style' &&
-    (
-      words.includes('use the product') ||
-      words.includes('demonstrate') ||
-      words.includes('try it') ||
-      words.includes('show how') ||
-      words.includes('using the product')
-    )
-  ) return 'demonstration';
-
-  if (shot.actionType === 'camera_move') return 'camera_move';
-  if (shot.actionType === 'product_move') return 'product_move';
-  if (shot.actionType === 'product_action') return 'product_action';
-
-  return 'still';
-}
-
 function AdaptiveTeachingVisual({
   shot,
   goal,
@@ -490,9 +380,35 @@ function AdaptiveTeachingVisual({
   goal: string;
   personInVideo: PersonSetting;
 }) {
-  const mode = getTeachingMode(shot, goal, personInVideo);
+  const environment = isEnvironmentShot(shot);
 
-  if (mode === 'talking') {
+  // Environment shots must not show a fake product or creator.
+  if (environment) {
+    if (shot.actionType === 'camera_move') {
+      return <CameraMovementVisual shot={shot} />;
+    }
+    return <StillVisual shot={shot} />;
+  }
+
+  const words = [
+    shot.title,
+    shot.actionName,
+    shot.actionInstruction,
+    shot.setupInstruction,
+    shot.aimInstruction,
+    shot.recordInstruction
+  ].join(' ').toLowerCase();
+
+  if (
+    personInVideo === 'with_person' &&
+    goal === 'UGC Style' &&
+    (
+      words.includes('talk to camera') ||
+      words.includes('speak to camera') ||
+      words.includes('look into the camera') ||
+      words.includes('look at the camera')
+    )
+  ) {
     return (
       <div className="teaching-stage talking-stage">
         <div className="teaching-label">HOW TO FILM THIS</div>
@@ -506,14 +422,16 @@ function AdaptiveTeachingVisual({
           </div>
         </div>
         <div className="teaching-caption">LOOK AT THE CAMERA</div>
-        <div className="teaching-tip">
-          Keep yourself and the product visible while you speak.
-        </div>
+        <div className="teaching-tip">{shot.aimInstruction}</div>
       </div>
     );
   }
 
-  if (mode === 'pov') {
+  if (
+    words.includes('pov') ||
+    words.includes('point of view') ||
+    words.includes('your view')
+  ) {
     return (
       <div className="teaching-stage pov-stage">
         <div className="teaching-label">POV SETUP</div>
@@ -530,44 +448,19 @@ function AdaptiveTeachingVisual({
     );
   }
 
-  if (mode === 'problem') {
-    return (
-      <div className="teaching-stage talking-stage">
-        <div className="teaching-label">SHOW THE PROBLEM</div>
-        <div className="talking-layout">
-          <div className="teaching-phone">PHONE</div>
-          <div className="teaching-arrow">→</div>
-          <div className="creator-frame">
-            <div className="creator-head" />
-            <div className="creator-body">YOU</div>
-          </div>
-        </div>
-        <div className="teaching-caption">EXPLAIN THE PROBLEM</div>
-        <div className="teaching-tip">{shot.actionInstruction}</div>
-      </div>
-    );
+  if (shot.actionType === 'camera_move') {
+    return <CameraMovementVisual shot={shot} />;
   }
 
-  if (mode === 'demonstration') {
-    return (
-      <div className="teaching-stage demo-stage">
-        <div className="teaching-label">DEMONSTRATE IT</div>
-        <div className="demo-layout">
-          <div className="demo-product">PRODUCT</div>
-          <div className="teaching-arrow">→</div>
-          <div className="demo-action">USE IT</div>
-        </div>
-        <div className="teaching-caption">{shot.actionName}</div>
-        <div className="teaching-tip">{shot.actionInstruction}</div>
-      </div>
-    );
+  if (shot.actionType === 'product_move') {
+    return <ProductMovementVisual shot={shot} />;
   }
 
-  if (mode === 'camera_move') return <CameraMovementVisual shot={shot} />;
-  if (mode === 'product_move') return <ProductMovementVisual shot={shot} />;
-  if (mode === 'product_action') return <ProductActionVisual shot={shot} />;
+  if (shot.actionType === 'product_action') {
+    return <ProductActionVisual shot={shot} />;
+  }
 
-  return <StillVisual />;
+  return <StillVisual shot={shot} />;
 }
 
 function MovementGuide({
@@ -579,14 +472,13 @@ function MovementGuide({
   goal: string;
   personInVideo: PersonSetting;
 }) {
-  let title = shot.actionName;
-
-  if (!title) {
-    if (shot.actionType === 'camera_move') title = 'MOVE YOUR PHONE';
-    else if (shot.actionType === 'product_move') title = 'MOVE THE PRODUCT';
-    else if (shot.actionType === 'still') title = 'KEEP STILL';
-    else title = 'DO THIS';
-  }
+  const title =
+    (shot.actionName || '').replace(/_/g, ' ').trim() ||
+    (shot.actionType === 'camera_move'
+      ? 'MOVE YOUR PHONE'
+      : shot.actionType === 'product_move'
+      ? 'MOVE THE PRODUCT'
+      : 'KEEP STILL');
 
   return (
     <div className="movement-card">
@@ -616,9 +508,6 @@ function MovementGuide({
   );
 }
 
-// Resize and compress photos before putting them into the API request.
-// Each data URL is capped so four photos plus the legacy image field fit
-// comfortably below Vercel's request payload limit.
 async function prepareProductPhoto(file: File): Promise<string> {
   const objectUrl = URL.createObjectURL(file);
 
@@ -650,12 +539,10 @@ async function prepareProductPhoto(file: File): Promise<string> {
       canvas.height = Math.max(1, Math.round(originalHeight * scale));
 
       const ctx = canvas.getContext('2d');
-
       if (!ctx) {
         throw new Error('Your browser could not process this photo.');
       }
 
-      // JPEG has no transparency: use white behind transparent product images.
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(photo, 0, 0, canvas.width, canvas.height);
@@ -688,12 +575,10 @@ export default function Home() {
   const [name, setName] = useState('');
   const [point, setPoint] = useState('');
   const [goal, setGoal] = useState(goals[0]);
-
   const [personInVideo, setPersonInVideo] =
     useState<PersonSetting>('with_person');
 
   const [images, setImages] = useState<string[]>([]);
-
   const [concept, setConcept] = useState<Concept | null>(null);
   const [shot, setShot] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -816,7 +701,6 @@ export default function Home() {
         <section className="hero">
           <div>
             <div className="badge">AI PRODUCT FILMING DIRECTOR</div>
-
             <h1>Don’t know how to film your product?</h1>
 
             <p className="lead">
@@ -856,9 +740,7 @@ export default function Home() {
             <article>
               <i>01</i>
               <h3>Show your product</h3>
-              <span>
-                Upload product photos and tell us the key selling point.
-              </span>
+              <span>Upload product photos and tell us the key selling point.</span>
             </article>
 
             <article>
@@ -902,9 +784,7 @@ export default function Home() {
           <div className="empty">
             <div>◎</div>
             <h3>Your first product video starts here.</h3>
-            <p>
-              Create a project and ShootAI will plan every shot for you.
-            </p>
+            <p>Create a project and ShootAI will plan every shot for you.</p>
 
             <button className="cta small" onClick={() => setView('create')}>
               Create project →
@@ -927,7 +807,6 @@ export default function Home() {
 
           <div className="badge">NEW PROJECT</div>
           <h2>What are you filming?</h2>
-
           <p>Give ShootAI enough context to create a useful plan.</p>
 
           <div style={{ margin: '25px 0' }}>
@@ -940,7 +819,6 @@ export default function Home() {
               }}
             >
               <strong style={{ fontSize: 13 }}>Product photos</strong>
-
               <span style={{ fontSize: 12, color: '#8f97a1' }}>
                 {images.length}/4 photos · 1 required
               </span>
@@ -1073,11 +951,9 @@ export default function Home() {
                     />
 
                     <span style={{ color: '#eaff47', fontSize: 28 }}>＋</span>
-
                     <span style={{ color: '#d9dde2', fontSize: 12 }}>
                       Add photos
                     </span>
-
                     <span style={{ color: '#747c86', fontSize: 11 }}>
                       Up to {4 - images.length} more
                     </span>
@@ -1089,7 +965,6 @@ export default function Home() {
 
           <label>
             Product name
-
             <input
               value={name}
               onChange={e => setName(e.target.value)}
@@ -1099,7 +974,6 @@ export default function Home() {
 
           <label>
             Main selling point
-
             <textarea
               value={point}
               onChange={e => setPoint(e.target.value)}
@@ -1109,7 +983,6 @@ export default function Home() {
 
           <label>
             Video goal
-
             <div className="goalgrid">
               {goals.map(g => (
                 <button
@@ -1126,7 +999,6 @@ export default function Home() {
 
           <label>
             Person in video
-
             <div className="goalgrid">
               <button
                 type="button"
@@ -1200,6 +1072,8 @@ export default function Home() {
       );
     }
 
+    const script = parseShotText(s.say);
+
     return (
       <main>
         {nav}
@@ -1262,14 +1136,25 @@ export default function Home() {
             </div>
           </div>
 
-          {s.say && (
+          {script.text && (
+            <div className="say">
+              <small>ON-SCREEN TEXT · NO SPEAKING REQUIRED</small>
+              <strong style={{ whiteSpace: 'pre-line' }}>
+                {script.text}
+              </strong>
+            </div>
+          )}
+
+          {script.voiceover && (
             <div className="say">
               <small>
                 {personInVideo === 'without_person'
                   ? 'OPTIONAL OFF-CAMERA VOICEOVER'
-                  : 'WHAT TO SAY'}
+                  : 'OPTIONAL VOICEOVER / WHAT TO SAY'}
               </small>
-              <strong>{s.say}</strong>
+              <strong style={{ whiteSpace: 'pre-line' }}>
+                {script.voiceover}
+              </strong>
             </div>
           )}
 
@@ -1297,7 +1182,6 @@ export default function Home() {
       <section className="finish">
         <div className="tick">✓</div>
         <div className="badge">FILMING PLAN COMPLETE</div>
-
         <h2>You know exactly what to shoot.</h2>
 
         <p>
