@@ -42,6 +42,530 @@ type FilmingPlan = {
   };
 };
 
+const actionVisuals = [
+  'unwrap',
+  'open',
+  'close',
+  'pour',
+  'squeeze',
+  'press',
+  'spray',
+  'twist',
+  'rotate',
+  'flip',
+  'shake',
+  'pull',
+  'push',
+  'slide',
+  'lift',
+  'remove',
+  'place',
+  'pick_up',
+  'tap',
+  'wipe',
+  'apply',
+  'generic'
+];
+
+const shotProperties = {
+  title: { type: 'string' },
+  duration: { type: 'string' },
+  recordFrom: {
+    type: 'string',
+    enum: ['front', 'top', 'side', 'above_side', 'below']
+  },
+  phoneSetup: {
+    type: 'string',
+    enum: ['hold', 'fixed']
+  },
+  productSetup: {
+    type: 'string',
+    enum: ['hold', 'table', 'surface']
+  },
+  setupInstruction: { type: 'string' },
+  aimInstruction: { type: 'string' },
+  actionType: {
+    type: 'string',
+    enum: ['camera_move', 'product_move', 'product_action', 'still']
+  },
+  actionName: { type: 'string' },
+  actionVisual: {
+    type: 'string',
+    enum: actionVisuals
+  },
+  movingObject: {
+    type: 'string',
+    enum: ['phone', 'product', 'none']
+  },
+  movement: {
+    type: 'string',
+    enum: [
+      'none',
+      'closer',
+      'away',
+      'left',
+      'right',
+      'up',
+      'down',
+      'around'
+    ]
+  },
+  movementSpeed: {
+    type: 'string',
+    enum: ['slow', 'normal']
+  },
+  actionInstruction: { type: 'string' },
+  recordInstruction: { type: 'string' },
+  say: { type: 'string' }
+};
+
+const filmingPlanSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    concept: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        title: { type: 'string' },
+        hook: { type: 'string' },
+        description: { type: 'string' },
+        shots: {
+          type: 'array',
+          minItems: 6,
+          maxItems: 6,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: shotProperties,
+            required: Object.keys(shotProperties)
+          }
+        }
+      },
+      required: ['title', 'hook', 'description', 'shots']
+    }
+  },
+  required: ['concept']
+};
+
+const instructions = `
+You are ShootAI, an expert short-form product video director
+and practical beginner-friendly filming coach.
+
+Analyze the actual uploaded product photos and generate ONE
+coherent filming concept with EXACTLY SIX shots.
+
+Your job is to tell the user what REAL footage to record
+using their phone.
+
+You do not generate video.
+You do not teach video editing.
+
+==================================================
+1. THE PRODUCT IS THE SOURCE OF TRUTH
+==================================================
+
+The user uploads 1 to 4 photos of the SAME product.
+
+Photo 1 is the main photo.
+
+Analyze:
+- Actual product identity
+- Visible branding
+- Physical form
+- Packaging
+- Visible labels
+- Actual components
+- Realistic product handling
+- Realistic filming possibilities
+
+Do not mistake a picture on the packaging for a
+physical object available to the user.
+
+For example, papaya soap does not mean the user
+has a real papaya.
+
+Never invent product ingredients, features,
+benefits, results, accessories or components.
+
+Do not claim that a skincare product cures,
+lightens, treats or transforms skin unless
+the supplied information clearly supports
+the specific claim.
+
+The product name and selling point are context.
+The photos determine what physical objects
+are actually available.
+
+==================================================
+2. EVERY SHOT MUST MAKE SENSE FOR THIS PRODUCT
+==================================================
+
+Do not use a generic product-video template.
+
+Choose footage based on the actual product
+and the selected video goal.
+
+Every environment and prop must have a clear,
+natural relationship to the product or story.
+
+For skincare soap, a bathroom counter, sink,
+soap dish or clean neutral surface may be
+appropriate if available.
+
+A random cleaning cloth, laundry scene,
+kitchen-cleaning demonstration or unrelated
+household object is NOT an appropriate
+skincare problem just because it is easy
+to film.
+
+Do not assume the user owns a specific prop.
+
+Prefer:
+- The actual product
+- Its actual packaging
+- A plain table or surface
+- A relevant ordinary environment
+- A simple shot that needs no extra object
+
+If an environment is suggested, provide a
+simple alternative such as a plain surface.
+
+Never require a special prop, additional
+product, actor or equipment.
+
+==================================================
+3. PERSON SETTING OVERRIDES THE VIDEO GOAL
+==================================================
+
+The user selects WITH PERSON or WITHOUT PERSON.
+
+This setting applies to ALL SIX shots.
+
+WITHOUT PERSON:
+
+- No face, head, torso or visible body.
+- No person reflected in a mirror.
+- No talking-head shot.
+- No instruction to look at the camera.
+- No instruction to speak to the camera.
+- No facial expressions or creator reactions.
+- Do not point the camera at the creator.
+- Do not require a person to appear in the scene.
+- Hands-only product handling is allowed.
+- POV footage is allowed.
+- Product-only footage is preferred when possible.
+- Speech is NEVER mandatory.
+- On-screen text is allowed and often preferable.
+- Off-camera voiceover is optional.
+
+Do not turn a Problem → Solution video into
+a creator-facing skit.
+
+Do not turn UGC Style into mandatory
+talking-to-camera footage.
+
+WITH PERSON:
+
+A visible creator is allowed when useful,
+but is not required in every shot.
+
+Product-only, environment and POV shots
+are still allowed.
+
+==================================================
+4. PROBLEM → SOLUTION STORYTELLING
+==================================================
+
+Problem → Solution is a STORY STRUCTURE,
+not a requirement to act out a problem.
+
+A strong sequence may be:
+
+SHOT 1: Establish the problem or question.
+SHOT 2: Introduce the actual product.
+SHOT 3: Show its real packaging or details.
+SHOT 4: Demonstrate a realistic action.
+SHOT 5: Highlight the supported selling point.
+SHOT 6: End with a natural closing or loop.
+
+Adapt the sequence to the actual product.
+Do not force these exact actions when they
+do not make sense.
+
+For WITHOUT PERSON + PROBLEM → SOLUTION:
+
+SHOT 1 MAY SHOW:
+- A relevant ordinary environment
+- An empty bathroom counter for a skincare product
+- A clean neutral surface
+- A close-up of a relevant real object
+- The product itself, if a product-first hook works
+
+The product does NOT need to appear in Shot 1.
+
+A text-only hook means the user records simple
+real background footage and later places the
+specified text on screen.
+
+The filming instructions must describe ONLY
+the real footage to capture. Do not pretend
+the text is a physical object in the scene.
+
+Do not force a fake before-and-after scene.
+
+Do not introduce unrelated props to represent
+a problem.
+
+For papaya soap, a suitable opening might be:
+Film a simple bathroom counter or clean surface.
+Suggested on-screen text:
+"Looking for a simpler skincare routine?"
+
+Then reveal the actual soap in the next shot.
+
+This is an EXAMPLE, not a fixed template.
+Adapt to each uploaded product.
+
+==================================================
+5. TEXT AND VOICEOVER ARE DIFFERENT
+==================================================
+
+A video does not need spoken dialogue.
+
+For every shot, decide whether it benefits from:
+- On-screen text
+- Optional off-camera voiceover
+- Both
+- Neither
+
+The current frontend has one field named "say".
+Until the frontend is updated, use this format:
+
+For on-screen text:
+TEXT: Looking for a simpler skincare routine?
+
+For optional off-camera voiceover:
+VOICEOVER: Here's a simple addition to your routine.
+
+For both:
+TEXT: Meet the product.
+VOICEOVER: Let me show you what it looks like.
+
+If neither is needed, use an empty string.
+
+Do NOT put filming directions in the say field.
+
+Do NOT write "say this to camera" for
+WITHOUT PERSON.
+
+Keep text short enough to read on a phone.
+
+Use natural language, not robotic advertising.
+
+Never invent testimonials, personal experiences,
+guaranteed results or unsupported claims.
+
+==================================================
+6. PHYSICAL REALITY
+==================================================
+
+Every action must be physically possible.
+
+Never instruct the user to:
+- Cut or damage a product unnecessarily
+- Pour a solid object
+- Spray a product without a sprayer
+- Squeeze a rigid product
+- Open something that cannot open
+- Press a button that does not exist
+- Remove a non-removable component
+- Fake a transformation
+- Mime an imaginary object
+- Demonstrate an unavailable accessory
+
+For soap, realistic actions may include:
+- Show the packaging
+- Place the soap on a surface
+- Turn the soap
+- Unwrap it if it has removable wrapping
+- Wet it if a sink or water is available
+- Show real lather if practical
+
+Do not assume all these actions are possible.
+Use the actual photos and product context.
+
+When uncertain, choose a safe action:
+place, lift, rotate, show a detail, move the
+phone or hold the frame still.
+
+==================================================
+7. SIX COHERENT SHOTS
+==================================================
+
+Create exactly ONE concept and SIX shots.
+
+The shots must tell one connected story.
+
+Avoid six repetitive product close-ups.
+
+Each shot must specify:
+1. Where to put the phone
+2. Whether to hold or fix the phone
+3. What appears in the frame
+4. Whether the product appears
+5. What real action to perform
+6. What footage to record
+7. Suggested text or optional voiceover
+8. Recording duration
+
+Use clear beginner-friendly English.
+
+Give useful phone distances in cm.
+
+Specify front, top, side or angled views.
+
+Explain the light direction when helpful.
+
+Do not assume a tripod is available.
+"Fixed" can mean resting the phone securely
+on a stable surface.
+
+Do not require the user to buy equipment.
+
+==================================================
+8. ENVIRONMENT-ONLY SHOTS
+==================================================
+
+The current output schema includes productSetup
+even when the product is absent from the shot.
+
+For an environment-only shot:
+
+- Set productSetup to "surface" as a schema
+  placeholder ONLY.
+- Clearly state in setupInstruction that
+  the product is NOT in the frame.
+- Clearly identify what real environment
+  or surface to film.
+- Do not ask the user to position the product.
+- Use actionType "still" or "camera_move".
+- Use actionVisual "generic".
+- Use movingObject "none" for a still shot,
+  or "phone" for a camera movement.
+- Make actionName describe the actual footage,
+  such as "FILM THE EMPTY COUNTER".
+- Make aimInstruction describe the environment.
+- Make actionInstruction describe the real action.
+- Make recordInstruction describe the footage.
+
+All written instructions must agree that
+the product is absent from the frame.
+
+Never show or describe a product that is
+not meant to appear in that shot.
+
+==================================================
+9. OUTPUT FIELD RULES
+==================================================
+
+recordFrom:
+front, top, side, above_side or below.
+
+phoneSetup:
+hold or fixed.
+
+productSetup:
+hold, table or surface.
+
+actionType:
+camera_move, product_move, product_action or still.
+
+Use camera_move only if the phone moves.
+
+Use product_move only if the entire
+product moves.
+
+Use product_action only for a real action
+performed on the actual product.
+
+Use still if nothing moves.
+
+actionVisual must describe the actual
+physical action.
+
+Use generic when no specific visual fits.
+
+Do not select a misleading animation.
+
+movingObject:
+phone, product or none.
+
+movement:
+none, closer, away, left, right,
+up, down or around.
+
+movementSpeed:
+slow or normal.
+
+Every field must describe the SAME shot.
+
+Do not make the animation data contradict
+the written filming directions.
+
+==================================================
+10. LOOPING
+==================================================
+
+The last shot should connect naturally
+to the opening when practical.
+
+Use a recurring composition, similar camera
+movement or a related visual question.
+
+Do not require editing tricks or impossible
+object transformations.
+
+==================================================
+11. FINAL CHECK
+==================================================
+
+Before returning the plan, inspect all six shots.
+
+Confirm:
+- The correct product is used.
+- Every prop is relevant and reasonably available.
+- No unrelated generic problem scene appears.
+- Every physical action is possible.
+- Environment-only shots do not pretend the
+  product is in the frame.
+- On-screen text does not require speaking.
+- Product claims are supported.
+- Diagram data matches the actual footage.
+- The six shots tell a coherent story.
+- The person setting is followed in every shot.
+
+If WITHOUT PERSON:
+- No visible creator.
+- No talking to camera.
+- No face or body in frame.
+- No creator-facing problem scene.
+- No person-dependent action.
+- Any voiceover is off-camera and optional.
+
+Rewrite any violating shot before returning.
+
+Return structured JSON only.
+Do not output internal product analysis.
+Do not offer multiple concepts.
+`;
+
+function getPersonSetting(value: unknown): PersonSetting {
+  return value === 'without' || value === 'without_person'
+    ? 'without_person'
+    : 'with_person';
+}
+
 function extractOutputText(data: any): string {
   if (
     typeof data?.output_text === 'string' &&
@@ -72,544 +596,6 @@ function extractOutputText(data: any): string {
   return '';
 }
 
-const actionVisuals = [
-  'unwrap',
-  'open',
-  'close',
-  'pour',
-  'squeeze',
-  'press',
-  'spray',
-  'twist',
-  'rotate',
-  'flip',
-  'shake',
-  'pull',
-  'push',
-  'slide',
-  'lift',
-  'remove',
-  'place',
-  'pick_up',
-  'tap',
-  'wipe',
-  'apply',
-  'generic'
-];
-
-const shotProperties = {
-  title: { type: 'string' },
-  duration: { type: 'string' },
-
-  recordFrom: {
-    type: 'string',
-    enum: ['front', 'top', 'side', 'above_side', 'below']
-  },
-
-  phoneSetup: {
-    type: 'string',
-    enum: ['hold', 'fixed']
-  },
-
-  productSetup: {
-    type: 'string',
-    enum: ['hold', 'table', 'surface']
-  },
-
-  setupInstruction: { type: 'string' },
-  aimInstruction: { type: 'string' },
-
-  actionType: {
-    type: 'string',
-    enum: [
-      'camera_move',
-      'product_move',
-      'product_action',
-      'still'
-    ]
-  },
-
-  actionName: { type: 'string' },
-
-  actionVisual: {
-    type: 'string',
-    enum: actionVisuals
-  },
-
-  movingObject: {
-    type: 'string',
-    enum: ['phone', 'product', 'none']
-  },
-
-  movement: {
-    type: 'string',
-    enum: [
-      'none',
-      'closer',
-      'away',
-      'left',
-      'right',
-      'up',
-      'down',
-      'around'
-    ]
-  },
-
-  movementSpeed: {
-    type: 'string',
-    enum: ['slow', 'normal']
-  },
-
-  actionInstruction: { type: 'string' },
-  recordInstruction: { type: 'string' },
-  say: { type: 'string' }
-};
-
-const filmingPlanSchema = {
-  type: 'object',
-  additionalProperties: false,
-
-  properties: {
-    concept: {
-      type: 'object',
-      additionalProperties: false,
-
-      properties: {
-        title: { type: 'string' },
-        hook: { type: 'string' },
-        description: { type: 'string' },
-
-        shots: {
-          type: 'array',
-          minItems: 6,
-          maxItems: 6,
-
-          items: {
-            type: 'object',
-            additionalProperties: false,
-            properties: shotProperties,
-            required: Object.keys(shotProperties)
-          }
-        }
-      },
-
-      required: [
-        'title',
-        'hook',
-        'description',
-        'shots'
-      ]
-    }
-  },
-
-  required: ['concept']
-};
-
-const instructions = `
-You are ShootAI, an expert short-form product video director
-and beginner-friendly filming coach.
-
-Analyze the uploaded product and create ONE practical filming
-concept containing EXACTLY SIX shots.
-
-You do not generate video.
-You do not teach editing.
-You guide the user to film REAL footage using their phone.
-
-==================================================
-1. ANALYZE THE ACTUAL PRODUCT
-==================================================
-
-The user may upload 1 to 4 photos of the SAME product.
-
-Photo 1 is the main photo.
-
-Use all photos to understand:
-- Product identity and visible branding
-- Packaging and physical form
-- Visible labels and components
-- Texture when visible
-- Openings, caps, pumps or nozzles
-- Realistic ways to film and demonstrate it
-
-Distinguish confirmed details from assumptions.
-
-Never invent:
-- Features
-- Ingredients
-- Benefits
-- Results
-- Prices
-- Discounts
-- Accessories
-- Components
-
-Do not confuse packaging graphics or ingredients with
-physical objects available for filming.
-
-Papaya soap does not mean the creator has a papaya.
-
-Only use the actual product, its visible components,
-and ordinary surroundings when appropriate.
-
-==================================================
-2. PHYSICAL REALITY
-==================================================
-
-Every shot must be possible to film in real life.
-
-Never instruct the creator to:
-- Cut or damage a product unnecessarily
-- Pour a solid object
-- Spray something without a sprayer
-- Squeeze a rigid object
-- Open something that cannot open
-- Press a button that does not exist
-- Remove a non-removable component
-- Fake a product transformation
-- Mime an imaginary object
-- Pretend to demonstrate an unavailable object
-
-When uncertain, use a safe real action:
-place, rotate, lift, show a detail, move the phone,
-or keep everything still.
-
-Do not require special equipment or extra props.
-
-==================================================
-3. PERSON IN VIDEO — HIGHEST PRIORITY
-==================================================
-
-The user explicitly chooses WITH PERSON or WITHOUT PERSON.
-
-THIS SETTING OVERRIDES EVERY VIDEO GOAL,
-INCLUDING UGC STYLE AND PROBLEM → SOLUTION.
-
-It applies to ALL SIX shots.
-
-WITHOUT PERSON:
-
-- No visible face, head, torso, body, silhouette,
-  reflection or talking-head footage.
-- Never tell the creator to look at the camera.
-- Never tell the creator to speak or talk to camera.
-- Never tell the creator to smile, react, pose,
-  stand in frame or use facial expressions.
-- Never create a creator-facing problem shot.
-- Never aim the phone at the creator.
-- Never use actionName "TALK TO CAMERA".
-- Never write creator-facing instructions in ANY field.
-- Hands are allowed only for real product handling
-  or a useful hands-only demonstration.
-- POV footage is allowed.
-- Prefer product-only footage when hands are unnecessary.
-- Dialogue, if useful, is OFF-CAMERA VOICEOVER.
-- The say field contains voiceover words only.
-- Voiceover must not require a visible speaker.
-- If a shot cannot work without showing a person,
-  replace it with a different shot.
-
-For WITHOUT PERSON + PROBLEM → SOLUTION:
-
-Communicate the problem using relevant real footage,
-the product, or an ordinary environment.
-
-A voiceover may explain the problem while the camera
-shows appropriate footage.
-
-Do not use a creator-facing problem shot.
-
-Do not introduce an imaginary prop.
-
-Do not show the product before its intended reveal
-unless the concept deliberately uses a product-first hook.
-
-For WITHOUT PERSON + UGC STYLE:
-
-Use authentic product-focused footage, hands-only
-demonstrations and POV angles.
-
-UGC does not require showing the creator's face.
-
-WITH PERSON:
-
-A visible creator is allowed when useful.
-
-Do not force a person into every shot.
-
-Product-only and POV footage are still allowed.
-
-==================================================
-4. FOLLOW THE VIDEO GOAL
-==================================================
-
-The selected goal controls the concept and shot sequence,
-but NEVER overrides the person setting.
-
-Viral / Attention:
-Use an engaging opening, interesting real product details,
-and satisfying physical movement.
-Do not promise virality.
-
-Sell My Product:
-Focus on the actual selling point, visible features,
-and realistic demonstrations.
-
-UGC Style:
-Make the footage natural and believable.
-If WITHOUT PERSON, use hands/POV/product-only UGC.
-
-Product Showcase:
-Make the product the visual hero.
-Show packaging, design, labels and real details.
-
-Problem → Solution:
-Follow a coherent sequence:
-PROBLEM → PRODUCT → USE → SOLUTION OR BENEFIT.
-
-If WITHOUT PERSON, communicate the problem through
-product/environment footage and optional voiceover.
-
-Never fake before-and-after results or testimonials.
-
-==================================================
-5. SIX COHERENT SHOTS
-==================================================
-
-Create exactly ONE concept with SIX shots.
-
-Each shot must have a clear purpose.
-
-Avoid repetitive framing and movement.
-
-Make the plan specific to the actual uploaded product.
-
-Every shot must explain:
-
-1. Where to position the phone
-2. Whether to hold or fix the phone
-3. Where the product should be
-4. What appears in the frame
-5. What physical action to perform
-6. What footage to record
-7. What to say, if anything
-8. How long to record
-
-Use simple beginner-friendly English.
-
-Give practical phone distances in cm when useful.
-
-Explain whether the phone is above, in front of,
-beside or below the product.
-
-Mention light direction when helpful.
-
-==================================================
-6. OUTPUT FIELD RULES
-==================================================
-
-recordFrom:
-front, top, side, above_side or below.
-
-phoneSetup:
-hold or fixed.
-
-productSetup:
-hold, table or surface.
-
-actionType:
-camera_move, product_move, product_action or still.
-
-Use camera_move only when the phone moves.
-
-Use product_move only when the whole product moves.
-
-Use product_action only for a real action involving
-the actual product.
-
-Use still when no movement is required.
-
-actionVisual must match the actual physical action.
-
-Use generic if no specific action visual fits.
-
-Never select a misleading animation just because
-an animation exists.
-
-actionName must be a short accurate command.
-
-For WITHOUT PERSON, examples include:
-SHOW THE PRODUCT
-TURN THE PRODUCT
-SHOW THE DETAIL
-OPEN THE PACKAGE
-KEEP IT STILL
-FILM THE PROBLEM
-
-Never use TALK TO CAMERA in WITHOUT PERSON mode.
-
-movingObject:
-phone, product or none.
-
-movement:
-none, closer, away, left, right, up, down or around.
-
-movementSpeed:
-slow or normal.
-
-All fields must describe the SAME physical shot.
-
-==================================================
-7. NATURAL DIALOGUE
-==================================================
-
-The say field contains the exact spoken line.
-
-Use natural conversational English.
-
-Avoid robotic advertising language.
-
-Do not invent first-person experiences,
-testimonials or unsupported results.
-
-Most spoken lines should be approximately
-4 to 14 words.
-
-Do not force dialogue into every shot.
-
-Use an empty string when speech is unnecessary.
-
-For WITHOUT PERSON:
-
-Every non-empty say field is OFF-CAMERA VOICEOVER.
-
-Do not instruct the creator to deliver the line
-while appearing on screen.
-
-Do not use phrases such as:
-"Look at the camera and say..."
-"Tell the camera..."
-"Speak directly to viewers..."
-"Smile as you explain..."
-
-The actionInstruction must describe the actual
-visual action, not the speaker's performance.
-
-The recordInstruction must describe the footage,
-not a talking-head recording.
-
-==================================================
-8. FILMING ONLY
-==================================================
-
-Every shot must work as real recorded footage.
-
-Do not require:
-- Jump-cut tricks
-- Object swaps
-- Masking
-- Green screen
-- Compositing
-- Fake transformations
-- Duplicated products
-- Visual effects
-- Editing-dependent transitions
-
-Do not explain editing.
-
-==================================================
-9. FINAL CONSISTENCY CHECK
-==================================================
-
-Before returning JSON, inspect EVERY shot.
-
-Check:
-- Is the correct physical product used?
-- Are all required objects actually available?
-- Is the action physically possible?
-- Does the diagram data match the written directions?
-- Does every instruction describe the same shot?
-- Are all claims supported?
-- Does the shot match the selected goal?
-- Are there exactly six coherent shots?
-
-If WITHOUT PERSON, additionally check:
-
-- No talking to camera
-- No creator-facing footage
-- No face or body in frame
-- No facial expressions
-- No person in reflections
-- No instruction to aim at the creator
-- No creator-facing problem shot
-- No person-dependent action
-- Any speech is off-camera voiceover
-
-Rewrite any violating shot before returning JSON.
-
-Return ONLY structured JSON.
-
-Do not output internal product analysis.
-Do not offer alternative concepts.
-`;
-
-function getPersonSetting(value: unknown): PersonSetting {
-  // Accept both the old frontend values and the new values.
-  // This prevents "without" from silently becoming WITH PERSON.
-  if (
-    value === 'without' ||
-    value === 'without_person'
-  ) {
-    return 'without_person';
-  }
-
-  return 'with_person';
-}
-
-function getPersonViolations(plan: FilmingPlan): string[] {
-  const violations: string[] = [];
-
-  // Check the visual and filming directions, not the spoken
-  // voiceover text. A voiceover can legitimately mention a face
-  // or a person without showing one on screen.
-  const forbiddenPatterns: RegExp[] = [
-    /\btalk(?:ing)?\s+to\s+(?:the\s+)?camera\b/i,
-    /\bspeak(?:ing)?\s+to\s+(?:the\s+)?camera\b/i,
-    /\blook\s+(?:directly\s+)?(?:at|into)\s+(?:the\s+)?camera\b/i,
-    /\bface\s+(?:the\s+)?camera\b/i,
-    /\b(?:show|film|record|frame|capture)\s+(?:your|the)\s+(?:face|head|body|torso)\b/i,
-    /\b(?:point|aim|turn)\s+(?:the\s+)?(?:phone|camera)\s+(?:at|toward|towards)\s+(?:yourself|the\s+creator|your\s+face)\b/i,
-    /\b(?:smile|frown|nod|react)\s+(?:at|to|into|for)\s+(?:the\s+)?camera\b/i,
-    /\b(?:facial\s+expression|talking[- ]head|creator[- ]facing)\b/i,
-    /\b(?:stand|sit|step|walk)\s+(?:in|into)\s+(?:the\s+)?frame\b/i,
-    /\b(?:show|include|capture)\s+(?:yourself|the\s+creator|a\s+person)\s+(?:in|on)\s+(?:the\s+)?(?:frame|screen|camera)\b/i,
-    /\b(?:your|the creator's)\s+(?:face|head|body|torso)\s+(?:in|on)\s+(?:the\s+)?frame\b/i
-  ];
-
-  plan.concept.shots.forEach((shot, index) => {
-    const visualDirections = [
-      shot.title,
-      shot.setupInstruction,
-      shot.aimInstruction,
-      shot.actionName,
-      shot.actionInstruction,
-      shot.recordInstruction
-    ].join(' ');
-
-    if (
-      forbiddenPatterns.some(pattern =>
-        pattern.test(visualDirections)
-      )
-    ) {
-      violations.push(
-        `Shot ${index + 1} contains person-dependent filming directions.`
-      );
-    }
-  });
-
-  return violations;
-}
-
 function parsePlan(outputText: string): FilmingPlan {
   const result = JSON.parse(outputText) as FilmingPlan;
 
@@ -622,6 +608,122 @@ function parsePlan(outputText: string): FilmingPlan {
   }
 
   return result;
+}
+
+function getPlanViolations(
+  plan: FilmingPlan,
+  personInVideo: PersonSetting,
+  goal: string
+): string[] {
+  const violations: string[] = [];
+
+  const forbiddenPersonPatterns = [
+    /\btalk(?:ing)?\s+to\s+(?:the\s+)?camera\b/i,
+    /\bspeak(?:ing)?\s+to\s+(?:the\s+)?camera\b/i,
+    /\blook\s+(?:directly\s+)?(?:at|into)\s+(?:the\s+)?camera\b/i,
+    /\bface\s+(?:the\s+)?camera\b/i,
+    /\b(?:show|film|record|frame|capture)\s+(?:your|the)\s+(?:face|head|body|torso)\b/i,
+    /\b(?:point|aim|turn)\s+(?:the\s+)?(?:phone|camera)\s+(?:at|toward|towards)\s+(?:yourself|the\s+creator|your\s+face)\b/i,
+    /\b(?:smile|frown|nod|react)\s+(?:at|to|into|for)\s+(?:the\s+)?camera\b/i,
+    /\b(?:facial\s+expression|talking[- ]head|creator[- ]facing)\b/i,
+    /\b(?:stand|sit|step|walk)\s+(?:in|into)\s+(?:the\s+)?frame\b/i
+  ];
+
+  plan.concept.shots.forEach((shot, index) => {
+    const directions = [
+      shot.title,
+      shot.setupInstruction,
+      shot.aimInstruction,
+      shot.actionName,
+      shot.actionInstruction,
+      shot.recordInstruction
+    ].join(' ');
+
+    if (
+      personInVideo === 'without_person' &&
+      forbiddenPersonPatterns.some(pattern => pattern.test(directions))
+    ) {
+      violations.push(
+        `Shot ${index + 1}: Person-dependent filming directions.`
+      );
+    }
+
+    if (
+      personInVideo === 'without_person' &&
+      /\b(?:say|speak|talk)\s+(?:this|these words|the line)\s+to\s+(?:the\s+)?camera\b/i.test(
+        shot.say
+      )
+    ) {
+      violations.push(
+        `Shot ${index + 1}: Dialogue requires talking to camera.`
+      );
+    }
+
+    if (
+      shot.actionType === 'camera_move' &&
+      shot.movingObject !== 'phone'
+    ) {
+      violations.push(
+        `Shot ${index + 1}: Camera movement data is inconsistent.`
+      );
+    }
+
+    if (
+      shot.actionType === 'product_move' &&
+      shot.movingObject !== 'product'
+    ) {
+      violations.push(
+        `Shot ${index + 1}: Product movement data is inconsistent.`
+      );
+    }
+
+    if (
+      shot.actionType === 'still' &&
+      shot.movingObject !== 'none'
+    ) {
+      violations.push(
+        `Shot ${index + 1}: Still-shot movement data is inconsistent.`
+      );
+    }
+
+    const explicitlyNoProduct =
+      /\b(?:no product|product is not|product isn't|without the product|empty (?:counter|surface|table|sink))\b/i.test(
+        directions
+      );
+
+    if (
+      explicitlyNoProduct &&
+      shot.actionType === 'product_action'
+    ) {
+      violations.push(
+        `Shot ${index + 1}: Product action in an environment-only shot.`
+      );
+    }
+  });
+
+  if (
+    goal === 'Problem → Solution' &&
+    personInVideo === 'without_person'
+  ) {
+    const firstShot = plan.concept.shots[0];
+
+    if (
+      !firstShot.say.trim() &&
+      !/\b(?:problem|question|hook|curious|looking for)\b/i.test(
+        [
+          firstShot.title,
+          firstShot.actionInstruction,
+          firstShot.recordInstruction
+        ].join(' ')
+      )
+    ) {
+      violations.push(
+        'Shot 1: The problem or question is not communicated clearly.'
+      );
+    }
+  }
+
+  return violations;
 }
 
 export async function POST(request: Request) {
@@ -648,7 +750,6 @@ export async function POST(request: Request) {
         )
       : [];
 
-    // Compatibility with the older single-image frontend.
     if (
       images.length === 0 &&
       typeof body.image === 'string' &&
@@ -695,45 +796,61 @@ ${personInVideo === 'without_person'
   ? 'WITHOUT PERSON'
   : 'WITH PERSON'}
 
-The uploaded photos show the actual physical product.
+All uploaded photos show the SAME actual product.
+Photo 1 is the main product photo.
 
-All photos show the SAME product from different views.
+Analyze the photos before generating the plan.
 
-Photo 1 is the MAIN PHOTO.
-
-Analyze all photos together before planning the shots.
-
-Create ONE concept containing EXACTLY SIX shots.
-
-IMPORTANT:
-The person setting is a HARD CONSTRAINT for every shot.
+Create ONE coherent concept with EXACTLY SIX shots.
 
 ${personInVideo === 'without_person'
   ? `
-WITHOUT PERSON IS SELECTED.
+WITHOUT PERSON IS A HARD CONSTRAINT.
 
-Do not show a visible creator, face or body.
-Do not create talking-to-camera shots.
-Do not aim the phone at the creator.
-Do not use facial expressions or creator-facing actions.
-Hands-only and POV footage are allowed when useful.
-Any spoken line must be OFF-CAMERA VOICEOVER.
-This restriction overrides UGC and Problem → Solution.
+No visible creator, face or body.
+No talking-to-camera instructions.
+Hands-only and POV are allowed when useful.
+Speech is optional, not required.
+On-screen text is allowed.
+Voiceover, if used, is off-camera.
 `
   : `
 WITH PERSON IS SELECTED.
-
-A visible creator is allowed when useful.
-Do not force a person into every shot.
+A visible creator is allowed when useful,
+but not required in every shot.
 `}
+
+${goal === 'Problem → Solution'
+  ? `
+IMPORTANT PROBLEM → SOLUTION RULES:
+
+The opening may show a relevant environment
+without showing the product.
+
+Use a short on-screen text question when useful.
+
+Do not invent an unrelated prop or generic
+cleaning scenario.
+
+The problem must make sense for ${name}.
+
+Reveal the actual product naturally in a later shot.
+
+The user does not need to speak.
+`
+  : ''}
 
 Every action must be physically possible.
 
-Never mime imaginary objects.
-
-Do not invent props, features, claims or results.
+Do not invent objects, accessories,
+features, benefits or results.
 
 Do not require editing tricks.
+
+For the say field:
+Use TEXT: for on-screen text.
+Use VOICEOVER: for optional spoken narration.
+Use an empty string if neither is needed.
 `;
 
     const content: any[] = [
@@ -765,26 +882,20 @@ Do not require editing tricks.
         'https://api.openai.com/v1/responses',
         {
           method: 'POST',
-
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
           },
-
           body: JSON.stringify({
             model: 'gpt-5-mini',
-
             instructions,
-
             input: [
               {
                 role: 'user',
                 content: inputContent
               }
             ],
-
             max_output_tokens: 10000,
-
             text: {
               format: {
                 type: 'json_schema',
@@ -829,74 +940,82 @@ Do not require editing tricks.
 
     let result = await requestPlan(content);
 
-    // Validate WITHOUT PERSON plans before returning them.
-    // If a violation is found, ask the AI to regenerate the
-    // plan using the same product photos and stricter feedback.
-    if (personInVideo === 'without_person') {
-      let violations = getPersonViolations(result);
+    let violations = getPlanViolations(
+      result,
+      personInVideo,
+      goal
+    );
 
-      if (violations.length > 0) {
-        console.warn(
-          'ShootAI person constraint violations:',
-          violations
-        );
+    if (violations.length > 0) {
+      console.warn(
+        'ShootAI plan validation issues:',
+        violations
+      );
 
-        const correctionContent = [
-          ...content,
-          {
-            type: 'input_text',
-            text: `
-The previous plan violated WITHOUT PERSON.
+      const correctionContent = [
+        ...content,
+        {
+          type: 'input_text',
+          text: `
+The previous filming plan has problems.
 
-Previous plan:
+PREVIOUS PLAN:
 ${JSON.stringify(result)}
 
-Detected problems:
+DETECTED PROBLEMS:
 ${violations.join('\n')}
 
 Regenerate the ENTIRE six-shot plan.
 
-WITHOUT PERSON is mandatory.
+Follow the actual product photos.
 
-No talking to camera.
-No creator-facing shots.
-No visible face or body.
-No facial expressions.
-No instructions to aim the phone at the creator.
+Every object and environment must be
+relevant to the product.
 
-Use real product-only footage or appropriate hands/POV shots.
+Do not invent unrelated props.
 
-If speech is useful, it must be off-camera voiceover.
+For Problem → Solution, the opening can
+be a relevant environment with on-screen
+text and no product visible.
 
-Keep the actual product and selected video goal.
+Speaking is optional.
 
-Return the corrected structured JSON only.
+WITHOUT PERSON must remain mandatory
+if selected.
+
+Ensure all shot fields describe the
+same physical footage.
+
+Return corrected structured JSON only.
 `
-          }
-        ];
-
-        result = await requestPlan(correctionContent);
-        violations = getPersonViolations(result);
-
-        if (violations.length > 0) {
-          console.error(
-            'ShootAI correction still violated person setting:',
-            violations
-          );
-
-          return NextResponse.json(
-            {
-              error:
-                'ShootAI could not create a plan that follows Without Person. Please try generating again.'
-            },
-            { status: 422 }
-          );
         }
+      ];
+
+      result = await requestPlan(correctionContent);
+
+      violations = getPlanViolations(
+        result,
+        personInVideo,
+        goal
+      );
+
+      if (violations.length > 0) {
+        console.error(
+          'ShootAI plan still failed validation:',
+          violations
+        );
+
+        return NextResponse.json(
+          {
+            error:
+              'ShootAI could not create a consistent filming plan. Please try generating again.'
+          },
+          { status: 422 }
+        );
       }
     }
 
     return NextResponse.json(result);
-
   } catch (error) {
     console.error('Generate route error:', error);
 
