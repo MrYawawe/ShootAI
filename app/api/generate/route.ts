@@ -617,17 +617,36 @@ function getPlanViolations(
 ): string[] {
   const violations: string[] = [];
 
-  const forbiddenPersonPatterns = [
-    /\btalk(?:ing)?\s+to\s+(?:the\s+)?camera\b/i,
-    /\bspeak(?:ing)?\s+to\s+(?:the\s+)?camera\b/i,
-    /\blook\s+(?:directly\s+)?(?:at|into)\s+(?:the\s+)?camera\b/i,
-    /\bface\s+(?:the\s+)?camera\b/i,
-    /\b(?:show|film|record|frame|capture)\s+(?:your|the)\s+(?:face|head|body|torso)\b/i,
-    /\b(?:point|aim|turn)\s+(?:the\s+)?(?:phone|camera)\s+(?:at|toward|towards)\s+(?:yourself|the\s+creator|your\s+face)\b/i,
-    /\b(?:smile|frown|nod|react)\s+(?:at|to|into|for)\s+(?:the\s+)?camera\b/i,
-    /\b(?:facial\s+expression|talking[- ]head|creator[- ]facing)\b/i,
-    /\b(?:stand|sit|step|walk)\s+(?:in|into)\s+(?:the\s+)?frame\b/i
-  ];
+ 
+const forbiddenPersonPatterns = [
+  // Talking directly to the camera
+  /\b(?:talk|talking|speak|speaking|say|chat|address)\s+(?:directly\s+)?(?:to|at|into)\s+(?:the\s+)?(?:camera|phone|lens|viewer|audience)\b/i,
+
+  // Looking at the camera
+  /\b(?:look|looking|stare|gaze|face)\s+(?:straight\s+|directly\s+)?(?:at|into|toward|towards)\s+(?:the\s+)?(?:camera|phone|lens)\b/i,
+
+  // Facial expressions
+  /\b(?:smile|smiling|frown|frowning|nod|nodding|facial expression|frustrated expression|friendly expression|raise your eyebrows)\b/i,
+
+  // Visible creator or body
+  /\b(?:show|film|record|frame|capture)\s+(?:your|the)\s+(?:face|head|body|torso|creator|person)\b/i,
+
+  // Creator-facing filming
+  /\b(?:point|aim|turn)\s+(?:the\s+)?(?:phone|camera)\s+(?:at|toward|towards)\s+(?:yourself|the\s+creator|your\s+face)\b/i,
+
+  // Acting or entering the frame
+  /\b(?:stand|sit|step|walk)\s+(?:in|into)\s+(?:the\s+)?frame\b/i,
+
+  // Talking-head instructions
+  /\b(?:talking[- ]head|creator[- ]facing|talk to camera|speak to camera)\b/i,
+
+  // Mandatory spoken dialogue
+  /\b(?:say|speak|read|deliver)\s+(?:the\s+|this\s+|these\s+)?(?:line|words|script|dialogue)\b/i,
+
+  // Creator reactions
+  /\b(?:react|reaction|act out|pretend to be|gesture when you say)\b/i
+];
+
 
   plan.concept.shots.forEach((shot, index) => {
     const directions = [
