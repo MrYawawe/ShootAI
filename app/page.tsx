@@ -703,10 +703,10 @@ export default function Home() {
             <div className="badge">AI PRODUCT FILMING DIRECTOR</div>
             <h1>Don’t know how to film your product?</h1>
 
-            <p className="lead">
-              Show ShootAI what you sell. Get a content concept and exact
-              shot-by-shot instructions you can follow with your phone.
-            </p>
+           <p className="lead">
+  Upload your product photos. Get a creative concept and six
+  step-by-step shots you can film using just your phone.
+</p>
 
             <button className="cta" onClick={() => setView('create')}>
               Create a filming plan →
@@ -717,19 +717,27 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mock">
-            <div className="phone">
-              <div className="frame">
-                <div className="box">
-                  YOUR<br />PRODUCT
-                </div>
-                <span>✓ Great framing</span>
-              </div>
+        
+<div className="mock">
+  <div className="phone">
+    <div className="frame">
+      <div className="box">
+        <span style={{ fontSize: 12 }}>PRODUCT VIDEO</span>
+        <strong style={{ fontSize: 22 }}>PAPAYA SOAP</strong>
+        <span style={{ fontSize: 11 }}>6-SHOT FILMING PLAN</span>
+      </div>
+      <span>✓ Phone-only filming</span>
+    </div>
 
-              <small>SHOT 1 OF 6 · HOOK</small>
-              <b>Bring the product quickly toward the camera.</b>
-            </div>
-          </div>
+    <small>SHOT 1 OF 6 · THE HOOK</small>
+    <b>Time to refresh your shower routine?</b>
+    <p style={{ fontSize: 12, color: '#aab0b8', marginTop: 10 }}>
+      Place your phone 30 cm from the bathroom counter.
+      Keep it steady and record for 2 seconds.
+    </p>
+  </div>
+</div>
+
         </section>
 
         <section className="how">
@@ -760,6 +768,79 @@ export default function Home() {
             </article>
           </div>
         </section>
+     
+<section className="how">
+  <p>BUILT FOR SOLO CREATORS</p>
+  <h2>Everything you need to know before pressing record.</h2>
+
+  <div className="steps">
+    <article>
+      <i>01</i>
+      <h3>Made for your product</h3>
+      <span>
+        Get filming ideas based on your actual product photos,
+        selling points, and video goal.
+      </span>
+    </article>
+
+    <article>
+      <i>02</i>
+      <h3>Know exactly where to place your phone</h3>
+      <span>
+        Follow clear camera directions, positioning diagrams,
+        and practical setup instructions.
+      </span>
+    </article>
+
+    <article>
+      <i>03</i>
+      <h3>Film without a production team</h3>
+      <span>
+        Create product footage with your phone, a simple setup,
+        and easy-to-follow shot instructions.
+      </span>
+    </article>
+  </div>
+</section>
+
+<section className="how">
+  <p>COMMON QUESTIONS</p>
+  <h2>Everything you need to know.</h2>
+
+  <div className="faq-list">
+    <details>
+      <summary>What is ShootAI?</summary>
+      <p>
+        ShootAI is an AI filming director that creates practical,
+        step-by-step product video plans based on your product photos.
+      </p>
+    </details>
+
+    <details>
+      <summary>Do I need professional filming equipment?</summary>
+      <p>
+        No. ShootAI is designed to help you film using your phone
+        and a simple setup.
+      </p>
+    </details>
+
+    <details>
+      <summary>Does ShootAI generate the actual video?</summary>
+      <p>
+        No. ShootAI guides you through filming your own footage.
+        It does not generate videos or edit them.
+      </p>
+    </details>
+
+    <details>
+      <summary>Can I film without showing my face?</summary>
+      <p>
+        Yes. You can select Without Person when creating your
+        filming plan.
+      </p>
+    </details>
+  </div>
+</section>
       </main>
     );
   }
